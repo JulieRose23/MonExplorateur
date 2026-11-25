@@ -32,17 +32,25 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Generate Release Keystore
+      - name: Restore or Generate Release Keystore
         run: |
-          keytool -genkeypair -v \
-            -keystore app/release.keystore \
-            -alias monexplorateur \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -storepass monexplorateur123 \
-            -keypass monexplorateur123 \
-            -dname "CN=MonExplorateur, OU=Android, O=Personal, L=France, S=France, C=FR"
+          if [ -n "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > app/release.keystore
+          else
+            keytool -genkeypair -v \
+              -keystore app/release.keystore \
+              -alias monexplorateur \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass monexplorateur123 \
+              -keypass monexplorateur123 \
+              -dname "CN=MonExplorateur, OU=Android, O=Personal, L=France, S=France, C=FR"
+            echo "=== KEYSTORE_BASE64_START ==="
+            base64 -w 0 app/release.keystore
+            echo ""
+            echo "=== KEYSTORE_BASE64_END ==="
+          fi
 
       - name: Build Release APK
         run: gradle assembleRelease --no-daemon
@@ -75,3 +83,4 @@ jobs:
             - **Serveur & Client FTP** : partage de fichiers en Wi-Fi sans câble.
             - **Inspecteur & Hash** : calcul MD5, SHA-1, SHA-256 et éditeur de texte intégré.
             - **Bilingue FR / EN & Thèmes** : changement instantané Français/English et thèmes Clair/Sombre/Système.
+
