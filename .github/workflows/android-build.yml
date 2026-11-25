@@ -46,10 +46,7 @@ jobs:
               -storepass monexplorateur123 \
               -keypass monexplorateur123 \
               -dname "CN=MonExplorateur, OU=Android, O=Personal, L=France, S=France, C=FR"
-            echo "=== KEYSTORE_BASE64_START ==="
-            base64 -w 0 app/release.keystore
-            echo ""
-            echo "=== KEYSTORE_BASE64_END ==="
+
           fi
 
       - name: Build Release APK
@@ -83,4 +80,5 @@ jobs:
             - **Serveur & Client FTP** : partage de fichiers en Wi-Fi sans câble.
             - **Inspecteur & Hash** : calcul MD5, SHA-1, SHA-256 et éditeur de texte intégré.
             - **Bilingue FR / EN & Thèmes** : changement instantané Français/English et thèmes Clair/Sombre/Système.
+
 
