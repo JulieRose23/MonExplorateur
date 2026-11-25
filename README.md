@@ -56,4 +56,5 @@
 
 ## Télécharger & Mises à jour automatiques
 
-[![Get it on Obtainium](https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png)](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/JulieRose23/MonExplorateur)
+<a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/JulieRose23/MonExplorateur"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" height="54" alt="Get it on Obtainium" /></a>
+
