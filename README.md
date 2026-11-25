@@ -53,3 +53,7 @@
 - **Archives** : Apache Commons Compress, XZ for Java, Junrar
 - **Réseau** : Apache FTPServer & Apache Commons Net
 - **CI/CD** : GitHub Actions (compilation et signature automatique des releases)
+
+## Télécharger & Mises à jour automatiques
+
+[![Get it on Obtainium](https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png)](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/JulieRose23/MonExplorateur)
