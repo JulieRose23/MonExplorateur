@@ -12,8 +12,8 @@ android {
         applicationId = "com.monexplorateur.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
-        versionName = "1.0.9"
+        versionCode = 10
+        versionName = "1.1.0"
     }
 
     signingConfigs {
@@ -83,4 +83,7 @@ dependencies {
     implementation("org.tukaani:xz:1.10")
     implementation("com.github.junrar:junrar:7.5.5")
     implementation("net.lingala.zip4j:zip4j:2.11.5")
+
+    // Module LSPosed / Xposed (compileOnly : aucun impact sans Root)
+    compileOnly("de.robv.android.xposed:api:82")
 }
