@@ -168,8 +168,8 @@ object ShizukuManager {
 
     suspend fun listerFichiers(chemin: String): List<FichierShizukuInfo> = withContext(Dispatchers.IO) {
         val srv = fileService ?: return@withContext emptyList()
-        val lignes = try {
-            srv.listerFichiers(chemin)
+        val lignes: List<String> = try {
+            srv.listerFichiers(chemin) ?: emptyList()
         } catch (_: Throwable) {
             emptyList()
         }
@@ -202,6 +202,6 @@ object ShizukuManager {
     }
 
     suspend fun copierVersCache(source: String, destinationCache: String): Boolean = withContext(Dispatchers.IO) {
-        try { fileService?.copierVersCache(source, destinationCache) ?: false } catch (_: Throwable) { false }
+        try { fileService?.copier(source, destinationCache) ?: false } catch (_: Throwable) { false }
     }
 }
