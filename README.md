@@ -1,6 +1,6 @@
 ﻿# 📁 MonExplorateur
 
-**Gestionnaire de fichiers Android moderne, complet et open-source (Material 3 / Jetpack Compose)**  
+**Gestionnaire de fichiers Android, complet et open-source (Material 3 / Jetpack Compose)**  
 *Modern, full-featured, open-source Android file manager built with Material 3 & Jetpack Compose*
 
 ---
