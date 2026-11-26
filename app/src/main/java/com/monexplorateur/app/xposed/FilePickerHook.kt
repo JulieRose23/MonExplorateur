@@ -1,8 +1,8 @@
 package com.monexplorateur.app.xposed
 
 import android.app.Instrumentation
-import android.content.Context
 import android.content.Intent
+import android.os.Build
 import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
@@ -12,6 +12,7 @@ class FilePickerHook : IXposedHookLoadPackage {
 
     companion object {
         private const val TARGET_PACKAGE = "com.monexplorateur.app"
+        private const val ACTION_PICK_IMAGES = "android.provider.action.PICK_IMAGES"
     }
 
     override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -23,28 +24,40 @@ class FilePickerHook : IXposedHookLoadPackage {
             object : XC_MethodHook() {
                 override fun beforeHookedMethod(param: MethodHookParam) {
                     val args = param.args ?: return
-                    val context = args.firstOrNull { it is Context } as? Context ?: return
-                    val intent = args.firstOrNull { it is Intent } as? Intent ?: return
+                    val intentIndex = args.indexOfFirst { it is Intent }
+                    if (intentIndex == -1) return
+                    val intent = args[intentIndex] as Intent
 
-                    val action = intent.action ?: return
-                    if (action != Intent.ACTION_OPEN_DOCUMENT && action != Intent.ACTION_GET_CONTENT) {
-                        return
+                    val cible = if (intent.action == Intent.ACTION_CHOOSER) {
+                        @Suppress("DEPRECATION")
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            intent.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
+                        } else {
+                            intent.getParcelableExtra(Intent.EXTRA_INTENT)
+                        }
+                    } else {
+                        intent
+                    } ?: return
+
+                    val action = cible.action ?: return
+                    val estActionFichier = action == Intent.ACTION_OPEN_DOCUMENT ||
+                        action == Intent.ACTION_GET_CONTENT ||
+                        action == ACTION_PICK_IMAGES
+
+                    if (!estActionFichier) return
+
+                    val nouvelIntent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                        type = cible.type?.takeIf { it.isNotEmpty() } ?: "*/*"
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                        putExtra(
+                            Intent.EXTRA_ALLOW_MULTIPLE,
+                            cible.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false)
+                        )
+                        setPackage(TARGET_PACKAGE)
                     }
 
-                    // Verifie que MonExplorateur est bien installe avant de rediriger
-                    val estInstalle = try {
-                        context.packageManager.getPackageInfo(TARGET_PACKAGE, 0)
-                        true
-                    } catch (_: Exception) {
-                        false
-                    }
-                    if (!estInstalle) return
-
-                    intent.action = Intent.ACTION_GET_CONTENT
-                    if (intent.type.isNullOrEmpty()) {
-                        intent.type = "*/*"
-                    }
-                    intent.setPackage(TARGET_PACKAGE)
+                    args[intentIndex] = nouvelIntent
+                    XposedBridge.log("MonExplorateur Hook [${lpparam.packageName}]: $action redirige vers $TARGET_PACKAGE")
                 }
             }
         )
