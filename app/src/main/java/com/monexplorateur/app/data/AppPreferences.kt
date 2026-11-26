@@ -4,6 +4,7 @@ import android.content.Context
 import com.monexplorateur.app.ui.theme.ModeTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import java.util.Locale
 
 enum class LangueApp(val code: String, val libelle: String) {
     FR("fr", "Français"),
@@ -16,7 +17,7 @@ object AppPreferences {
     private val _modeTheme = MutableStateFlow(ModeTheme.SYSTEME)
     val modeTheme: StateFlow<ModeTheme> = _modeTheme
 
-    private val _langue = MutableStateFlow(LangueApp.FR)
+    private val _langue = MutableStateFlow(langueSystemeParDefaut())
     val langue: StateFlow<LangueApp> = _langue
 
     private val _rootActive = MutableStateFlow(false)
@@ -25,12 +26,21 @@ object AppPreferences {
     private val _shizukuActive = MutableStateFlow(false)
     val shizukuActive: StateFlow<Boolean> = _shizukuActive
 
+    private fun langueSystemeParDefaut(): LangueApp {
+        return if (Locale.getDefault().language.equals("fr", ignoreCase = true)) {
+            LangueApp.FR
+        } else {
+            LangueApp.EN
+        }
+    }
+
     fun init(context: Context) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val themeName = prefs.getString("theme", ModeTheme.SYSTEME.name) ?: ModeTheme.SYSTEME.name
         _modeTheme.value = runCatching { ModeTheme.valueOf(themeName) }.getOrDefault(ModeTheme.SYSTEME)
-        val langName = prefs.getString("langue", LangueApp.FR.name) ?: LangueApp.FR.name
-        _langue.value = runCatching { LangueApp.valueOf(langName) }.getOrDefault(LangueApp.FR)
+        val defaut = langueSystemeParDefaut().name
+        val langName = prefs.getString("langue", defaut) ?: defaut
+        _langue.value = runCatching { LangueApp.valueOf(langName) }.getOrDefault(langueSystemeParDefaut())
         _rootActive.value = prefs.getBoolean("root_active", false)
         _shizukuActive.value = prefs.getBoolean("shizuku_active", false)
     }
