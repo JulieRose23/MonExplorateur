@@ -92,6 +92,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import com.monexplorateur.app.notifications.ArchiveNotificationHelper
 import com.monexplorateur.app.notifications.ArchiveTaskManager
 import com.monexplorateur.app.root.RootManager
 import com.monexplorateur.app.shizuku.ShizukuManager
@@ -139,6 +140,8 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
     val shizukuActive by AppPreferences.shizukuActive.collectAsState()
     val rootConnecte by RootManager.serviceConnecte.collectAsState()
     val shizukuConnecte by ShizukuManager.serviceConnecte.collectAsState()
+    val etatArchive by ArchiveTaskManager.etat.collectAsState()
+    val eventRefreshArchive by ArchiveTaskManager.evenementRafraichir.collectAsState()
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
