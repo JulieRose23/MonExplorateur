@@ -1,4 +1,4 @@
-﻿package com.monexplorateur.app.ui.screens
+package com.monexplorateur.app.ui.screens
 
 import android.Manifest
 import android.content.Context
@@ -87,7 +87,12 @@ import com.monexplorateur.app.data.LangueApp
 import com.monexplorateur.app.data.SourceFichier
 import com.monexplorateur.app.data.TrashManager
 import com.monexplorateur.app.data.UnifiedFileEngine
-import com.monexplorateur.app.notifications.ArchiveNotificationHelper
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import com.monexplorateur.app.notifications.ArchiveTaskManager
 import com.monexplorateur.app.root.RootManager
 import com.monexplorateur.app.shizuku.ShizukuManager
 import com.monexplorateur.app.ui.components.BadgeIconeElement
@@ -206,7 +211,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
     var archiveDestinationPicker by remember { mutableStateOf<ElementFichier?>(null) }
     var elementsACompresser by remember { mutableStateOf<List<ElementFichier>>(emptyList()) }
 
-    LaunchedEffect(cheminCourant, compteurRefresh, rootConnecte, shizukuConnecte, rootActive, shizukuActive) {
+    LaunchedEffect(cheminCourant, compteurRefresh, eventRefreshArchive, rootConnecte, shizukuConnecte, rootActive, shizukuActive) {
         chargement = true
         fichiers = UnifiedFileEngine.listerDossier(cheminCourant).filterNot { it.nom == ".MonExplorateur_Corbeille" }
         chargement = false
@@ -422,6 +427,59 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
             }
             HorizontalDivider()
 
+            if (etatArchive.enCours || etatArchive.termine) {
+                Surface(
+                    color = if (etatArchive.enCours) MaterialTheme.colorScheme.secondaryContainer
+                    else if (etatArchive.succes) MaterialTheme.colorScheme.primaryContainer
+                    else MaterialTheme.colorScheme.errorContainer,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = if (etatArchive.enCours) {
+                                        if (etatArchive.estCompression) {
+                                            if (en) "Compressing: ${etatArchive.nomArchive}" else "Compression : ${etatArchive.nomArchive}"
+                                        } else {
+                                            if (en) "Extracting: ${etatArchive.nomArchive}" else "Extraction : ${etatArchive.nomArchive}"
+                                        }
+                                    } else etatArchive.nomArchive,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = if (etatArchive.enCours) {
+                                        if (etatArchive.indetermine) (if (en) "Preparing..." else "Préparation...")
+                                        else "${etatArchive.progression} %"
+                                    } else etatArchive.messageFin,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                            if (!etatArchive.enCours) {
+                                IconButton(onClick = { ArchiveTaskManager.effacerBanniere() }) {
+                                    Icon(Icons.Default.Close, contentDescription = if (en) "Close" else "Fermer")
+                                }
+                            }
+                        }
+                        if (etatArchive.enCours) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            if (etatArchive.indetermine) {
+                                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                            } else {
+                                LinearProgressIndicator(
+                                    progress = { (etatArchive.progression / 100f).coerceIn(0f, 1f) },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                    }
+                }
+                HorizontalDivider()
+            }
+
             when {
                 chargement || rechercheEnCours -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -494,22 +552,27 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
         val nomDefaut = if (cibles.size == 1) File(cibles.first().nom).nameWithoutExtension else "Archive"
         var nomArchive by remember { mutableStateOf(nomDefaut) }
         var formatChoisi by remember { mutableStateOf(FormatArchive.ZIP) }
+        var protegerParMdp by remember { mutableStateOf(false) }
+        var motDePasse by remember { mutableStateOf("") }
+        var decouperArchive by remember { mutableStateOf(false) }
+        var taillePartMoTexte by remember { mutableStateOf("50") }
+
+        val libelleNb = if (en) {
+            if (cibles.size > 1) "${cibles.size} items" else "1 item"
+        } else {
+            if (cibles.size > 1) "${cibles.size} éléments" else "1 élément"
+        }
 
         AlertDialog(
             onDismissRequest = { elementsACompresser = emptyList() },
             title = {
-                val libelleNb = if (en) {
-                    if (cibles.size > 1) "${cibles.size} items" else "1 item"
-                } else {
-                    if (cibles.size > 1) "${cibles.size} éléments" else "1 élément"
-                }
-                Text(
-                    if (en) "Create archive ($libelleNb)"
-                    else "Créer une archive ($libelleNb)"
-                )
+                Text(if (en) "Create archive ($libelleNb)" else "Créer une archive ($libelleNb)")
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.verticalScroll(rememberScrollState())
+                ) {
                     OutlinedTextField(
                         value = nomArchive,
                         onValueChange = { nomArchive = it },
@@ -526,79 +589,98 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { formatChoisi = fmt }
-                                .padding(vertical = 2.dp)
+                                .clickable {
+                                    formatChoisi = fmt
+                                    if (fmt != FormatArchive.ZIP) protegerParMdp = false
+                                }
                         ) {
-                            RadioButton(selected = formatChoisi == fmt, onClick = { formatChoisi = fmt })
-                            Text(fmt.libelle(en), style = MaterialTheme.typography.bodyMedium)
+                            RadioButton(
+                                selected = formatChoisi == fmt,
+                                onClick = {
+                                    formatChoisi = fmt
+                                    if (fmt != FormatArchive.ZIP) protegerParMdp = false
+                                }
+                            )
+                            Text(fmt.libelle(en), style = MaterialTheme.typography.bodySmall)
                         }
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                protegerParMdp = !protegerParMdp
+                                if (protegerParMdp) formatChoisi = FormatArchive.ZIP
+                            }
+                    ) {
+                        Checkbox(
+                            checked = protegerParMdp,
+                            onCheckedChange = {
+                                protegerParMdp = it
+                                if (it) formatChoisi = FormatArchive.ZIP
+                            }
+                        )
+                        Text(
+                            if (en) "Protect with password (ZIP AES-256)" else "Protéger avec un mot de passe (ZIP AES-256)",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    if (protegerParMdp) {
+                        OutlinedTextField(
+                            value = motDePasse,
+                            onValueChange = { motDePasse = it },
+                            label = { Text(if (en) "Password" else "Mot de passe") },
+                            visualTransformation = PasswordVisualTransformation(),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { decouperArchive = !decouperArchive }
+                    ) {
+                        Checkbox(
+                            checked = decouperArchive,
+                            onCheckedChange = { decouperArchive = it }
+                        )
+                        Text(
+                            if (en) "Split into parts (name.ext_1, _2...)" else "Découper en plusieurs parties (nom.ext_1, _2...)",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    if (decouperArchive) {
+                        OutlinedTextField(
+                            value = taillePartMoTexte,
+                            onValueChange = { taillePartMoTexte = it.filter { c -> c.isDigit() } },
+                            label = { Text(if (en) "Max size per part (MB)" else "Taille max par partie (Mo)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
             },
             confirmButton = {
                 Button(onClick = {
                     val propre = nomArchive.trim().ifEmpty { "Archive" }
-                    val fmt = formatChoisi
+                    val fmt = if (protegerParMdp && motDePasse.isNotEmpty()) FormatArchive.ZIP else formatChoisi
+                    val mdpFinal = if (protegerParMdp) motDePasse else null
+                    val splitMo = if (decouperArchive) taillePartMoTexte.toLongOrNull()?.coerceAtLeast(1L) else null
                     elementsACompresser = emptyList()
                     selection = emptySet()
-                    scope.launch {
-                        val dest = File(cheminCourant, "$propre.${fmt.extension}")
-                        val notifHelper = ArchiveNotificationHelper(context)
-                        val notifId = (System.currentTimeMillis() and 0x7FFFFFFF).toInt()
-                        val titreNotif = if (en) "Compressing: ${dest.name}" else "Compression : ${dest.name}"
 
-                        Toast.makeText(
-                            context,
-                            if (en) "Compressing ${fmt.extension.uppercase()}..." else "Compression ${fmt.extension.uppercase()} en cours...",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        notifHelper.showProgress(
-                            title = titreNotif,
-                            text = if (en) "Preparing files..." else "Préparation des fichiers...",
-                            progress = 0,
-                            indeterminate = true,
-                            notifId = notifId
-                        )
-
-                        val fichiersLocaux = cibles.mapNotNull { UnifiedFileEngine.preparerFichierLocal(context, it) }
-                        val ok = withContext(Dispatchers.IO) {
-                            FileUtils.compresser(fichiersLocaux, dest, fmt) { pct ->
-                                notifHelper.showProgress(
-                                    title = titreNotif,
-                                    text = "$pct %",
-                                    progress = pct,
-                                    indeterminate = false,
-                                    notifId = notifId
-                                )
-                            }
-                        }
-                        if (ok) {
-                            compteurRefresh++
-                            notifHelper.showCompleted(
-                                title = if (en) "Archive created: ${dest.name}" else "Archive créée : ${dest.name}",
-                                text = if (en) "Compression completed" else "Compression terminée avec succès",
-                                success = true,
-                                notifId = notifId
-                            )
-                            Toast.makeText(
-                                context,
-                                if (en) "Archive created: ${dest.name}" else "Archive créée : ${dest.name}",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        } else {
-                            notifHelper.showCompleted(
-                                title = if (en) "Compression failed: ${dest.name}" else "Échec de la compression : ${dest.name}",
-                                text = if (en) "An error occurred" else "Une erreur est survenue",
-                                success = false,
-                                notifId = notifId
-                            )
-                            Toast.makeText(
-                                context,
-                                if (en) "Compression failed" else "Échec de la compression",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    }
+                    ArchiveTaskManager.lancerCompression(
+                        context = context,
+                        cibles = cibles,
+                        dossierDestination = cheminCourant,
+                        nomBase = propre,
+                        format = fmt,
+                        motDePasse = mdpFinal,
+                        tailleSplitMo = splitMo,
+                        en = en
+                    )
                 }) { Text(if (en) "Compress" else "Compresser") }
             },
             dismissButton = {
@@ -607,16 +689,26 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
         )
     }
 
-    // Boîte de choix au clic sur une archive (ZIP, 7Z, RAR, TAR.GZ...)
     archiveAExtraire?.let { archiveItem ->
+        var motDePasseExtraction by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { archiveAExtraire = null },
             title = { Text("Archive : ${archiveItem.nom}") },
             text = {
-                Text(
-                    if (en) "How would you like to handle this archive?"
-                    else "Comment souhaitez-vous traiter cette archive ?"
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        if (en) "How would you like to handle this archive?"
+                        else "Comment souhaitez-vous traiter cette archive ?"
+                    )
+                    OutlinedTextField(
+                        value = motDePasseExtraction,
+                        onValueChange = { motDePasseExtraction = it },
+                        label = { Text(if (en) "Password (if encrypted)" else "Mot de passe (si protégée)") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             },
             confirmButton = {
                 TextButton(onClick = {
@@ -632,20 +724,25 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                     }) { Text(if (en) "Open" else "Ouvrir") }
                     TextButton(onClick = {
                         val cible = archiveItem
+                        val mdp = motDePasseExtraction
                         archiveAExtraire = null
-                        scope.launch {
-                            extraireArchiveVers(context, cible, cheminCourant, en) { compteurRefresh++ }
-                        }
+                        ArchiveTaskManager.lancerExtraction(
+                            context = context,
+                            archiveItem = cible,
+                            dossierDestination = cheminCourant,
+                            motDePasse = mdp,
+                            en = en
+                        )
                     }) { Text(if (en) "Extract here" else "Extraire ici") }
                 }
             }
         )
     }
 
-    // Mini-navigateur pour choisir le dossier d'extraction
     archiveDestinationPicker?.let { archiveItem ->
         var dossierCible by remember { mutableStateOf(cheminCourant) }
         var sousDossiers by remember { mutableStateOf<List<ElementFichier>>(emptyList()) }
+        var motDePasseDest by remember { mutableStateOf("") }
 
         LaunchedEffect(dossierCible) {
             sousDossiers = UnifiedFileEngine.listerDossier(dossierCible).filter { it.estDossier }
@@ -655,36 +752,46 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
             onDismissRequest = { archiveDestinationPicker = null },
             title = { Text(if (en) "Extract to..." else "Extraire vers...") },
             text = {
-                Column(modifier = Modifier.height(280.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (dossierCible != "/" && dossierCible != racineStockage) {
-                            IconButton(onClick = {
-                                dossierCible = File(dossierCible).parent ?: racineStockage
-                            }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Parent")
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = motDePasseDest,
+                        onValueChange = { motDePasseDest = it },
+                        label = { Text(if (en) "Password (if encrypted)" else "Mot de passe (si protégée)") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Column(modifier = Modifier.height(220.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (dossierCible != "/" && dossierCible != racineStockage) {
+                                IconButton(onClick = {
+                                    dossierCible = File(dossierCible).parent ?: racineStockage
+                                }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Parent")
+                                }
                             }
+                            Text(
+                                text = dossierCible,
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
+                            )
                         }
-                        Text(
-                            text = dossierCible,
-                            style = MaterialTheme.typography.bodySmall,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    HorizontalDivider()
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(sousDossiers, key = { it.cheminComplet }) { d ->
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { dossierCible = d.cheminComplet }
-                                    .padding(vertical = 10.dp, horizontal = 8.dp)
-                            ) {
-                                Icon(IconeDossierModerne, contentDescription = null, modifier = Modifier.size(20.dp))
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Text(d.nom, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        HorizontalDivider()
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            items(sousDossiers, key = { it.cheminComplet }) { d ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { dossierCible = d.cheminComplet }
+                                        .padding(vertical = 10.dp, horizontal = 8.dp)
+                                ) {
+                                    Icon(IconeDossierModerne, contentDescription = null, modifier = Modifier.size(20.dp))
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text(d.nom, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
                             }
                         }
                     }
@@ -694,10 +801,15 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                 Button(onClick = {
                     val dest = dossierCible
                     val cible = archiveItem
+                    val mdp = motDePasseDest
                     archiveDestinationPicker = null
-                    scope.launch {
-                        extraireArchiveVers(context, cible, dest, en) { compteurRefresh++ }
-                    }
+                    ArchiveTaskManager.lancerExtraction(
+                        context = context,
+                        archiveItem = cible,
+                        dossierDestination = dest,
+                        motDePasse = mdp,
+                        en = en
+                    )
                 }) { Text(if (en) "Extract here" else "Extraire ici") }
             },
             dismissButton = {
@@ -705,8 +817,6 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
             }
         )
     }
-
-    // Dialogue Propriétés + MD5 / SHA-256
     elementProprietes?.let { cible ->
         var md5 by remember { mutableStateOf<String?>(null) }
         var sha256 by remember { mutableStateOf<String?>(null) }
