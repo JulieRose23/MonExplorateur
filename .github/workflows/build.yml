@@ -25,7 +25,7 @@ jobs:
           gradle-version: '8.9'
 
       - name: Compiler l'APK Debug
-        run: gradle assembleDebug
+        run: gradle assembleDebug --no-daemon
 
       - name: Publier l'APK en tant qu'Artifact
         uses: actions/upload-artifact@v5

@@ -12,11 +12,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AdminPanelSettings
-import androidx.compose.material.icons.filled.Cloud
-import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -46,10 +46,10 @@ import com.monexplorateur.app.ui.theme.MonExplorateurTheme
 import kotlinx.coroutines.launch
 
 enum class SectionNavigation(val titre: String, val description: String, val icone: ImageVector) {
-    STOCKAGE("Stockage interne", "Fichiers et dossiers standards (/storage/emulated/0)", Icons.Default.Folder),
-    SHIZUKU("Mode Shizuku", "Accès protégé (/Android/data et /Android/obb)", Icons.Default.Security),
-    ROOT("Accès Root (su)", "Partitions système complètes (/)", Icons.Default.AdminPanelSettings),
-    FTP("Réseau FTP", "Client et serveur de transfert Wi-Fi local", Icons.Default.Cloud)
+    STOCKAGE("Stockage interne", "Fichiers et dossiers standards (/storage/emulated/0)", Icons.Default.Search),
+    SHIZUKU("Mode Shizuku", "Accès protégé (/Android/data et /Android/obb)", Icons.Default.Lock),
+    ROOT("Accès Root (su)", "Partitions système complètes (/)", Icons.Default.Build),
+    FTP("Réseau FTP", "Client et serveur de transfert Wi-Fi local", Icons.Default.Share)
 }
 
 class MainActivity : ComponentActivity() {
