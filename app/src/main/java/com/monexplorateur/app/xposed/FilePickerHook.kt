@@ -19,7 +19,6 @@ class FilePickerHook : IXposedHookLoadPackage {
 
     override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
         if (lpparam.packageName == TARGET_PACKAGE) return
-        XposedBridge.log("MonExplorateur Hook: module actif dans ${lpparam.packageName}")
 
         val hookCallback = object : XC_MethodHook() {
             override fun beforeHookedMethod(param: MethodHookParam) {
@@ -44,23 +43,32 @@ class FilePickerHook : IXposedHookLoadPackage {
                 val action = cible.action
                 val pkgComposant = cible.component?.packageName.orEmpty()
                 val categories = cible.categories.orEmpty()
+                val mimeTypeOrigine = cible.type.orEmpty()
+                val mimeTypesExtra = cible.getStringArrayExtra(Intent.EXTRA_MIME_TYPES)
 
-                XposedBridge.log("MonExplorateur Hook [${lpparam.packageName}] INTENT: action=$action type=${cible.type} data=${cible.data} comp=$pkgComposant cats=$categories")
+                // Laisse passer les permissions de dossiers, la creation de fichiers et le Photo Picker (galerie)
+                if (action == Intent.ACTION_OPEN_DOCUMENT_TREE ||
+                    action == Intent.ACTION_CREATE_DOCUMENT ||
+                    action == ACTION_PICK_IMAGES) {
+                    return
+                }
 
-                if (action == Intent.ACTION_OPEN_DOCUMENT_TREE || action == Intent.ACTION_CREATE_DOCUMENT) return
+                // Laisse passer les demandes exclusivement reservees aux photos/videos (ex: Galerie Gemini)
+                val estUniquementMedia = (mimeTypeOrigine.startsWith("image/") || mimeTypeOrigine.startsWith("video/")) &&
+                    (mimeTypesExtra == null || mimeTypesExtra.all { it.startsWith("image/") || it.startsWith("video/") })
+
+                if (estUniquementMedia) return
 
                 val estActionFichier = action == Intent.ACTION_OPEN_DOCUMENT ||
                     action == Intent.ACTION_GET_CONTENT ||
                     action == Intent.ACTION_PICK ||
-                    action == ACTION_PICK_IMAGES ||
                     Intent.CATEGORY_OPENABLE in categories ||
                     pkgComposant.contains("documentsui", ignoreCase = true)
 
                 if (!estActionFichier) return
 
-                val mimeType = cible.type?.takeIf { it.isNotEmpty() } ?: "*/*"
+                val mimeType = mimeTypeOrigine.takeIf { it.isNotEmpty() } ?: "*/*"
                 val multiple = cible.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false)
-                val mimeTypesExtra = cible.getStringArrayExtra(Intent.EXTRA_MIME_TYPES)
 
                 val nouvelIntent = Intent(Intent.ACTION_GET_CONTENT).apply {
                     type = mimeType
