@@ -43,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.monexplorateur.app.ui.screens.ExplorateurShizukuScreen
 import com.monexplorateur.app.ui.screens.ExplorateurStandardScreen
 import com.monexplorateur.app.ui.theme.MonExplorateurTheme
 import kotlinx.coroutines.launch
@@ -124,6 +125,7 @@ fun ApplicationPrincipale() {
             ) {
                 when (sectionActive) {
                     SectionNavigation.STOCKAGE -> ExplorateurStandardScreen()
+                    SectionNavigation.SHIZUKU -> ExplorateurShizukuScreen()
                     else -> EcranEnConstruction(sectionActive)
                 }
             }
