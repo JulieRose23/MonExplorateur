@@ -117,7 +117,7 @@ private data class PressePapierMulti(
 )
 
 @Composable
-fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(0.dp)) {
+fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(0.dp), modeSelectionExterne: Boolean = false, onFichierChoisiExterne: ((File) -> Unit)? = null) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
@@ -537,6 +537,13 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                                         rechercheActive = false
                                         requeteRecherche = ""
                                         cheminCourant = item.cheminComplet
+                                    } else if (modeSelectionExterne && onFichierChoisiExterne != null) {
+                                        scope.launch {
+                                            val f = UnifiedFileEngine.preparerFichierLocal(context, item)
+                                            if (f != null && f.exists()) {
+                                                onFichierChoisiExterne(f)
+                                            }
+                                        }
                                     } else if (FileUtils.estArchiveSupportee(item.nom)) {
                                         archiveAExtraire = item
                                     } else {

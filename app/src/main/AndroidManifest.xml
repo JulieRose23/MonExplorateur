@@ -96,6 +96,13 @@
                 <data android:pathPattern=".*\\.bz2" />
                 <data android:pathPattern=".*\\.xz" />
             </intent-filter>
+            <!-- Permettre aux autres apps de choisir un fichier via MonExplorateur -->
+            <intent-filter>
+                <action android:name="android.intent.action.GET_CONTENT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.OPENABLE" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
         </activity>
     </application>
 </manifest>

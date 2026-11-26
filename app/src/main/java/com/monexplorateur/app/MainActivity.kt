@@ -1,5 +1,6 @@
 package com.monexplorateur.app
 
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -35,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.content.FileProvider
 import com.monexplorateur.app.data.AppPreferences
 import com.monexplorateur.app.data.ElementFichier
 import com.monexplorateur.app.data.LangueApp
@@ -64,6 +66,7 @@ enum class OngletPrincipal {
 
 class MainActivity : ComponentActivity() {
     private var uriRecue by mutableStateOf<Uri?>(null)
+    private var modeSelectionExterne by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,12 +74,28 @@ class MainActivity : ComponentActivity() {
         if (intent?.action == Intent.ACTION_VIEW) {
             uriRecue = intent.data
         }
+        modeSelectionExterne = intent?.action == Intent.ACTION_GET_CONTENT
+
         setContent {
             val modeTheme by AppPreferences.modeTheme.collectAsState()
             MonExplorateurTheme(modeTheme = modeTheme) {
                 ApplicationPrincipale(
                     uriExterne = uriRecue,
-                    onUriTraitee = { uriRecue = null }
+                    onUriTraitee = { uriRecue = null },
+                    modeSelectionExterne = modeSelectionExterne,
+                    onFichierChoisiPourApp = { fichierLocal ->
+                        val uriResultat = FileProvider.getUriForFile(
+                            this,
+                            "${packageName}.fileprovider",
+                            fichierLocal
+                        )
+                        val resultIntent = Intent().apply {
+                            data = uriResultat
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        setResult(Activity.RESULT_OK, resultIntent)
+                        finish()
+                    }
                 )
             }
         }
@@ -88,6 +107,9 @@ class MainActivity : ComponentActivity() {
         if (intent.action == Intent.ACTION_VIEW && intent.data != null) {
             uriRecue = intent.data
         }
+        if (intent.action == Intent.ACTION_GET_CONTENT) {
+            modeSelectionExterne = true
+        }
     }
 }
 
@@ -95,7 +117,9 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun ApplicationPrincipale(
     uriExterne: Uri? = null,
-    onUriTraitee: () -> Unit = {}
+    onUriTraitee: () -> Unit = {},
+    modeSelectionExterne: Boolean = false,
+    onFichierChoisiPourApp: ((File) -> Unit)? = null
 ) {
     var ongletActif by remember { mutableStateOf(OngletPrincipal.STOCKAGE) }
     val langue by AppPreferences.langue.collectAsState()
@@ -119,11 +143,12 @@ fun ApplicationPrincipale(
             TopAppBar(
                 title = {
                     Text(
-                        text = when (ongletActif) {
-                            OngletPrincipal.STOCKAGE -> "MonExplorateur"
-                            OngletPrincipal.CORBEILLE -> if (en) "Trash" else "Corbeille"
-                            OngletPrincipal.FTP -> if (en) "FTP Network" else "Réseau FTP"
-                            OngletPrincipal.REGLAGES -> if (en) "Settings" else "Réglages"
+                        text = when {
+                            modeSelectionExterne -> if (en) "Select a file" else "Choisir un fichier"
+                            ongletActif == OngletPrincipal.STOCKAGE -> "MonExplorateur"
+                            ongletActif == OngletPrincipal.CORBEILLE -> if (en) "Trash" else "Corbeille"
+                            ongletActif == OngletPrincipal.FTP -> if (en) "FTP Network" else "Réseau FTP"
+                            else -> if (en) "Settings" else "Réglages"
                         },
                         fontWeight = FontWeight.SemiBold
                     )
@@ -135,20 +160,22 @@ fun ApplicationPrincipale(
             )
         },
         bottomBar = {
-            NavigationBar {
-                OngletPrincipal.entries.forEach { onglet ->
-                    val icone: ImageVector = when (onglet) {
-                        OngletPrincipal.STOCKAGE -> IconeDossierModerne
-                        OngletPrincipal.CORBEILLE -> Icons.Default.Delete
-                        OngletPrincipal.FTP -> Icons.Default.Share
-                        OngletPrincipal.REGLAGES -> Icons.Default.Settings
+            if (!modeSelectionExterne) {
+                NavigationBar {
+                    OngletPrincipal.entries.forEach { onglet ->
+                        val icone: ImageVector = when (onglet) {
+                            OngletPrincipal.STOCKAGE -> IconeDossierModerne
+                            OngletPrincipal.CORBEILLE -> Icons.Default.Delete
+                            OngletPrincipal.FTP -> Icons.Default.Share
+                            OngletPrincipal.REGLAGES -> Icons.Default.Settings
+                        }
+                        NavigationBarItem(
+                            selected = onglet == ongletActif,
+                            onClick = { ongletActif = onglet },
+                            icon = { Icon(icone, contentDescription = onglet.titre(en)) },
+                            label = { Text(onglet.titre(en)) }
+                        )
                     }
-                    NavigationBarItem(
-                        selected = onglet == ongletActif,
-                        onClick = { ongletActif = onglet },
-                        icon = { Icon(icone, contentDescription = onglet.titre(en)) },
-                        label = { Text(onglet.titre(en)) }
-                    )
                 }
             }
         }
@@ -160,7 +187,11 @@ fun ApplicationPrincipale(
         ) {
             val basPadding = PaddingValues(bottom = innerPadding.calculateBottomPadding())
             when (ongletActif) {
-                OngletPrincipal.STOCKAGE -> ExplorateurUnifieScreen(paddingBasNavigation = basPadding)
+                OngletPrincipal.STOCKAGE -> ExplorateurUnifieScreen(
+                    paddingBasNavigation = basPadding,
+                    modeSelectionExterne = modeSelectionExterne,
+                    onFichierChoisiExterne = onFichierChoisiPourApp
+                )
                 OngletPrincipal.CORBEILLE -> CorbeilleScreen(paddingBasNavigation = basPadding)
                 OngletPrincipal.FTP -> Box(modifier = Modifier.padding(basPadding)) { ReseauFtpScreen() }
                 OngletPrincipal.REGLAGES -> ReglagesScreen(paddingBasNavigation = basPadding)
