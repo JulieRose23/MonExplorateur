@@ -39,6 +39,12 @@ object ArchiveTaskManager {
     private val _evenementRafraichir = MutableStateFlow(0)
     val evenementRafraichir: StateFlow<Int> = _evenementRafraichir.asStateFlow()
 
+    private val _archiveExterne = MutableStateFlow<ElementFichier?>(null)
+    val archiveExterne: StateFlow<ElementFichier?> = _archiveExterne.asStateFlow()
+
+    fun ouvrirArchiveExterne(item: ElementFichier) { _archiveExterne.value = item }
+    fun consommerArchiveExterne() { _archiveExterne.value = null }
+
     internal var pendingCompression: PendingCompression? = null
     internal var pendingExtraction: PendingExtraction? = null
 

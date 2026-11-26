@@ -1,6 +1,10 @@
-﻿package com.monexplorateur.app
+package com.monexplorateur.app
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
+import android.provider.OpenableColumns
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -22,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,13 +36,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import com.monexplorateur.app.data.AppPreferences
+import com.monexplorateur.app.data.ElementFichier
 import com.monexplorateur.app.data.LangueApp
+import com.monexplorateur.app.data.SourceFichier
+import com.monexplorateur.app.notifications.ArchiveTaskManager
 import com.monexplorateur.app.ui.components.IconeDossierModerne
 import com.monexplorateur.app.ui.screens.CorbeilleScreen
 import com.monexplorateur.app.ui.screens.ExplorateurUnifieScreen
 import com.monexplorateur.app.ui.screens.ReglagesScreen
 import com.monexplorateur.app.ui.screens.ReseauFtpScreen
 import com.monexplorateur.app.ui.theme.MonExplorateurTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
 
 enum class OngletPrincipal {
     STOCKAGE, CORBEILLE, FTP, REGLAGES;
@@ -51,24 +63,56 @@ enum class OngletPrincipal {
 }
 
 class MainActivity : ComponentActivity() {
+    private var uriRecue by mutableStateOf<Uri?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        if (intent?.action == Intent.ACTION_VIEW) {
+            uriRecue = intent.data
+        }
         setContent {
             val modeTheme by AppPreferences.modeTheme.collectAsState()
             MonExplorateurTheme(modeTheme = modeTheme) {
-                ApplicationPrincipale()
+                ApplicationPrincipale(
+                    uriExterne = uriRecue,
+                    onUriTraitee = { uriRecue = null }
+                )
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.action == Intent.ACTION_VIEW && intent.data != null) {
+            uriRecue = intent.data
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ApplicationPrincipale() {
+fun ApplicationPrincipale(
+    uriExterne: Uri? = null,
+    onUriTraitee: () -> Unit = {}
+) {
     var ongletActif by remember { mutableStateOf(OngletPrincipal.STOCKAGE) }
     val langue by AppPreferences.langue.collectAsState()
     val en = langue == LangueApp.EN
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    LaunchedEffect(uriExterne) {
+        val uri = uriExterne ?: return@LaunchedEffect
+        ongletActif = OngletPrincipal.STOCKAGE
+        val element = withContext(Dispatchers.IO) {
+            resoudreUriArchive(context, uri)
+        }
+        if (element != null) {
+            ArchiveTaskManager.ouvrirArchiveExterne(element)
+        }
+        onUriTraitee()
+    }
 
     Scaffold(
         topBar = {
@@ -122,5 +166,62 @@ fun ApplicationPrincipale() {
                 OngletPrincipal.REGLAGES -> ReglagesScreen(paddingBasNavigation = basPadding)
             }
         }
+    }
+}
+
+private fun resoudreUriArchive(context: android.content.Context, uri: Uri): ElementFichier? {
+    return try {
+        if (uri.scheme == "file" && uri.path != null) {
+            val f = File(uri.path!!)
+            if (f.exists()) {
+                return ElementFichier(
+                    nom = f.name,
+                    cheminComplet = f.absolutePath,
+                    estDossier = false,
+                    tailleOuNombre = f.length(),
+                    derniereModif = f.lastModified(),
+                    source = SourceFichier.STANDARD
+                )
+            }
+        }
+
+        var nomFichier = "archive.zip"
+        context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            val idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (idx >= 0 && cursor.moveToFirst()) {
+                nomFichier = cursor.getString(idx) ?: nomFichier
+            }
+        }
+
+        val dossierDownloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        val fichierDownload = File(dossierDownloads, nomFichier)
+        if (fichierDownload.exists() && fichierDownload.isFile) {
+            return ElementFichier(
+                nom = fichierDownload.name,
+                cheminComplet = fichierDownload.absolutePath,
+                estDossier = false,
+                tailleOuNombre = fichierDownload.length(),
+                derniereModif = fichierDownload.lastModified(),
+                source = SourceFichier.STANDARD
+            )
+        }
+
+        val dossierCache = File(context.cacheDir, "archives_externes").apply { mkdirs() }
+        val copieLocale = File(dossierCache, nomFichier)
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            FileOutputStream(copieLocale).use { output -> input.copyTo(output, 65536) }
+        }
+        if (copieLocale.exists()) {
+            ElementFichier(
+                nom = copieLocale.name,
+                cheminComplet = copieLocale.absolutePath,
+                estDossier = false,
+                tailleOuNombre = copieLocale.length(),
+                derniereModif = copieLocale.lastModified(),
+                source = SourceFichier.STANDARD
+            )
+        } else null
+    } catch (_: Exception) {
+        null
     }
 }

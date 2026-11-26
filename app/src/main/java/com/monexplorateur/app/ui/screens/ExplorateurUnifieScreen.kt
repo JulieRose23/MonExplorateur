@@ -142,6 +142,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
     val shizukuConnecte by ShizukuManager.serviceConnecte.collectAsState()
     val etatArchive by ArchiveTaskManager.etat.collectAsState()
     val eventRefreshArchive by ArchiveTaskManager.evenementRafraichir.collectAsState()
+    val archiveExterneRecue by ArchiveTaskManager.archiveExterne.collectAsState()
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -230,6 +231,18 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
         delay(350)
         resultatsRecherche = UnifiedFileEngine.rechercherPartout(requeteRecherche)
         rechercheEnCours = false
+    }
+
+        LaunchedEffect(archiveExterneRecue) {
+        val extItem = archiveExterneRecue ?: return@LaunchedEffect
+        val dossierParent = File(extItem.cheminComplet).parent
+        if (!dossierParent.isNullOrEmpty() && !dossierParent.startsWith(context.cacheDir.absolutePath)) {
+            cheminCourant = dossierParent
+        } else {
+            cheminCourant = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS).absolutePath
+        }
+        archiveAExtraire = extItem
+        ArchiveTaskManager.consommerArchiveExterne()
     }
 
     BackHandler(enabled = enModeSelection || rechercheActive || (cheminCourant != "/" && cheminCourant != racineStockage)) {
