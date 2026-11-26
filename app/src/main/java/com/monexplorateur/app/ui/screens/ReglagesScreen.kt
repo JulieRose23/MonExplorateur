@@ -41,7 +41,6 @@ fun ReglagesScreen(paddingBasNavigation: PaddingValues = PaddingValues(0.dp)) {
     val modeTheme by AppPreferences.modeTheme.collectAsState()
     val rootActive by AppPreferences.rootActive.collectAsState()
     val shizukuActive by AppPreferences.shizukuActive.collectAsState()
-    val barreLiquid by AppPreferences.barreLiquid.collectAsState()
 
     val shizukuDispo by ShizukuManager.estDisponible.collectAsState()
     val shizukuPerm by ShizukuManager.aPermission.collectAsState()
@@ -55,34 +54,12 @@ fun ReglagesScreen(paddingBasNavigation: PaddingValues = PaddingValues(0.dp)) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Section Apparence & Barre Liquid
         Card(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Apparence & Navigation", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Barre flottante Liquid Glass", style = MaterialTheme.typography.bodyLarge)
-                        Text(
-                            "Pilule flottante translucide moderne en bas de l'écran",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(
-                        checked = barreLiquid,
-                        onCheckedChange = { AppPreferences.setBarreLiquid(context, it) }
-                    )
-                }
-
-                HorizontalDivider()
-
+                Text("Apparence", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Text("Thème de l'application", style = MaterialTheme.typography.bodyLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ModeTheme.entries.forEach { mode ->
@@ -96,7 +73,6 @@ fun ReglagesScreen(paddingBasNavigation: PaddingValues = PaddingValues(0.dp)) {
             }
         }
 
-        // Section Privilèges & Accès Système (Shizuku & Root)
         Card(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
             modifier = Modifier.fillMaxWidth()
@@ -104,7 +80,6 @@ fun ReglagesScreen(paddingBasNavigation: PaddingValues = PaddingValues(0.dp)) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("Accès Système & Privilèges", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
-                // Switch Shizuku
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
@@ -134,7 +109,6 @@ fun ReglagesScreen(paddingBasNavigation: PaddingValues = PaddingValues(0.dp)) {
 
                 HorizontalDivider()
 
-                // Switch Root (su)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()

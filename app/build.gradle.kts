@@ -12,13 +12,29 @@ android {
         applicationId = "com.monexplorateur.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
+    }
+
+    signingConfigs {
+        create("release") {
+            val ksFile = file("release.keystore")
+            if (ksFile.exists()) {
+                storeFile = ksFile
+                storePassword = "monexplorateur123"
+                keyAlias = "monexplorateur"
+                keyPassword = "monexplorateur123"
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
+            val ksFile = file("release.keystore")
+            if (ksFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     compileOptions {
@@ -66,4 +82,9 @@ dependencies {
     implementation("commons-net:commons-net:3.11.1")
     implementation("org.apache.ftpserver:ftpserver-core:1.2.0")
     implementation("org.slf4j:slf4j-nop:2.0.16")
+
+    // Archives multi-formats (ZIP, 7Z, TAR, GZ, RAR)
+    implementation("org.apache.commons:commons-compress:1.27.1")
+    implementation("org.tukaani:xz:1.10")
+    implementation("com.github.junrar:junrar:7.5.5")
 }

@@ -17,16 +17,12 @@ object AppPreferences {
     private val _shizukuActive = MutableStateFlow(true)
     val shizukuActive: StateFlow<Boolean> = _shizukuActive
 
-    private val _barreLiquid = MutableStateFlow(true)
-    val barreLiquid: StateFlow<Boolean> = _barreLiquid
-
     fun init(context: Context) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val themeName = prefs.getString("theme", ModeTheme.SYSTEME.name) ?: ModeTheme.SYSTEME.name
         _modeTheme.value = runCatching { ModeTheme.valueOf(themeName) }.getOrDefault(ModeTheme.SYSTEME)
         _rootActive.value = prefs.getBoolean("root_active", false)
         _shizukuActive.value = prefs.getBoolean("shizuku_active", true)
-        _barreLiquid.value = prefs.getBoolean("barre_liquid", true)
     }
 
     fun setModeTheme(context: Context, mode: ModeTheme) {
@@ -42,10 +38,5 @@ object AppPreferences {
     fun setShizukuActive(context: Context, actif: Boolean) {
         _shizukuActive.value = actif
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().putBoolean("shizuku_active", actif).apply()
-    }
-
-    fun setBarreLiquid(context: Context, actif: Boolean) {
-        _barreLiquid.value = actif
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().putBoolean("barre_liquid", actif).apply()
     }
 }
