@@ -1,5 +1,7 @@
 ﻿package com.monexplorateur.app.ui.screens
 
+private val en: Boolean get() = com.monexplorateur.app.data.AppPreferences.langue.value == com.monexplorateur.app.data.LangueApp.EN
+
 import android.Manifest
 import android.content.Context
 import android.content.Intent
