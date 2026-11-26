@@ -104,7 +104,7 @@ fun ReglagesScreen(paddingBasNavigation: PaddingValues = PaddingValues(0.dp)) {
                         onCheckedChange = { actif ->
                             AppPreferences.setShizukuActive(context, actif)
                             if (actif) {
-                                val msg = ShizukuManager.demanderPermissionDepuisReglages()
+                                val msg = ShizukuManager.demanderPermissionDepuisReglages(context)
                                 Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                             } else {
                                 ShizukuManager.deconnecter()
@@ -149,3 +149,4 @@ fun ReglagesScreen(paddingBasNavigation: PaddingValues = PaddingValues(0.dp)) {
         Spacer(modifier = Modifier.height(16.dp))
     }
 }
+

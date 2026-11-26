@@ -157,5 +157,36 @@ object ShizukuManager {
     fun renommer(ancien: String, nouveau: String): Boolean = try { fileService?.renamePath(ancien, nouveau) == true } catch (_: Exception) { false }
     fun copier(source: String, dest: String): Boolean = try { fileService?.copyPath(source, dest) == true } catch (_: Exception) { false }
     fun copierVersCache(source: String, destCache: String): Boolean = try { fileService?.copyToLocalCache(source, destCache) == true } catch (_: Exception) { false }
-}
 
+    fun demanderPermissionDepuisReglages(context: android.content.Context): String {
+        initialiser(context)
+        val pingOk = try {
+            rikka.shizuku.Shizuku.pingBinder()
+        } catch (_: Throwable) {
+            false
+        }
+        _estDisponible.value = pingOk
+        if (!pingOk) {
+            return "Service Shizuku inactif : ouvrez l'application Shizuku et démarrez le service."
+        }
+        val granted = try {
+            !rikka.shizuku.Shizuku.isPreV11() && rikka.shizuku.Shizuku.checkSelfPermission() == android.content.pm.PackageManager.PERMISSION_GRANTED
+        } catch (_: Throwable) {
+            false
+        }
+        if (granted) {
+            _aPermission.value = true
+            return "Shizuku connecté !"
+        }
+        return try {
+            rikka.shizuku.Shizuku.requestPermission(2026)
+            "Demande d'autorisation envoyée à Shizuku..."
+        } catch (e: Throwable) {
+            "Erreur Shizuku : ${e.message}"
+        }
+    }
+
+    fun deconnecter() {
+        _serviceConnecte.value = false
+    }
+}

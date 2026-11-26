@@ -15,7 +15,9 @@ class MonExplorateurApp : Application() {
     override fun onCreate() {
         super.onCreate()
         AppPreferences.init(this)
-        ShizukuManager.init(this, demanderSiActif = AppPreferences.shizukuActive.value)
+        if (AppPreferences.shizukuActive.value) {
+            ShizukuManager.initialiser(this)
+        }
         if (AppPreferences.rootActive.value) {
             appScope.launch {
                 RootManager.verifierEtConnecter(this@MonExplorateurApp)
