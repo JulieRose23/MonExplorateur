@@ -43,14 +43,17 @@ class FilePickerHook : IXposedHookLoadPackage {
 
                 val action = cible.action
                 val pkgComposant = cible.component?.packageName.orEmpty()
+                val categories = cible.categories.orEmpty()
 
-                // Ignore volontairement OPEN_DOCUMENT_TREE (acces dossier) et CREATE_DOCUMENT (Enregistrer sous)
+                XposedBridge.log("MonExplorateur Hook [${lpparam.packageName}] INTENT: action=$action type=${cible.type} data=${cible.data} comp=$pkgComposant cats=$categories")
+
                 if (action == Intent.ACTION_OPEN_DOCUMENT_TREE || action == Intent.ACTION_CREATE_DOCUMENT) return
 
                 val estActionFichier = action == Intent.ACTION_OPEN_DOCUMENT ||
                     action == Intent.ACTION_GET_CONTENT ||
                     action == Intent.ACTION_PICK ||
                     action == ACTION_PICK_IMAGES ||
+                    Intent.CATEGORY_OPENABLE in categories ||
                     pkgComposant.contains("documentsui", ignoreCase = true)
 
                 if (!estActionFichier) return
@@ -79,10 +82,11 @@ class FilePickerHook : IXposedHookLoadPackage {
                 cible.setPackage(TARGET_PACKAGE)
 
                 args[intentIndex] = nouvelIntent
-                XposedBridge.log("MonExplorateur Hook [${lpparam.packageName}]: action=$action comp=$pkgComposant -> $TARGET_PACKAGE")
+                XposedBridge.log("MonExplorateur Hook [${lpparam.packageName}]: REDIRIGE -> $TARGET_PACKAGE")
             }
         }
 
+        XposedBridge.hookAllMethods(Activity::class.java, "startActivity", hookCallback)
         XposedBridge.hookAllMethods(Activity::class.java, "startActivityForResult", hookCallback)
         XposedBridge.hookAllMethods(ContextWrapper::class.java, "startActivity", hookCallback)
         XposedBridge.hookAllMethods(Instrumentation::class.java, "execStartActivity", hookCallback)
