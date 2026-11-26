@@ -40,7 +40,7 @@
 ## 📲 Installation
 
 1. Rendez-vous dans l'onglet [**Releases**](../../releases) de ce dépôt.
-2. Téléchargez le fichier `MonExplorateur-v1.0.0.apk`.
+2. Téléchargez le fichier `MonExplorateur.apk`.
 3. Installez l'APK sur votre appareil Android (Android 8.0+ / API 26+) et accordez l'autorisation d'accès à tous les fichiers (`MANAGE_EXTERNAL_STORAGE`).
 
 ---
