@@ -73,8 +73,15 @@ object UnifiedFileEngine {
                 val dir = File(chemin)
                 val enfants = dir.listFiles() ?: return@withContext emptyList()
                 enfants.map { f ->
-                    val countOrSize = if (f.isDirectory) (f.list()?.size?.toLong() ?: 0L) else f.length()
-                    ElementFichier(f.name, f.absolutePath, f.isDirectory, countOrSize, f.lastModified(), SourceFichier.STANDARD)
+                    val estDir = f.isDirectory
+                    ElementFichier(
+                        nom = f.name,
+                        cheminComplet = f.absolutePath,
+                        estDossier = estDir,
+                        tailleOuNombre = if (estDir) -1L else f.length(),
+                        derniereModif = f.lastModified(),
+                        source = SourceFichier.STANDARD
+                    )
                 }.sortedWith(compareBy({ !it.estDossier }, { it.nom.lowercase(Locale.getDefault()) }))
             }
         }
