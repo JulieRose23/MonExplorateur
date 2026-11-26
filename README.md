@@ -45,7 +45,7 @@
 
 ---
 
-## 🛠️ Stack Technique / Tech Stack
+## 🛠️Détails techniques
 
 - **Langage** : Kotlin 2.0 & Coroutines
 - **Interface** : Jetpack Compose + Material Design 3
