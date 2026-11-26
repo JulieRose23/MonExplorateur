@@ -2,6 +2,7 @@
 
 import com.github.junrar.Junrar
 import org.apache.commons.compress.archivers.ArchiveEntry
+import org.apache.commons.compress.archivers.ArchiveInputStream
 import org.apache.commons.compress.archivers.ArchiveStreamFactory
 import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry
 import org.apache.commons.compress.archivers.sevenz.SevenZFile
@@ -59,7 +60,7 @@ object FileUtils {
         }
     }
 
-    private fun compresserEnZip(sources: List<File>, destinationZip: File): Boolean {
+    fun compresserEnZip(sources: List<File>, destinationZip: File): Boolean {
         ZipOutputStream(BufferedOutputStream(FileOutputStream(destinationZip))).use { zos ->
             for (src in sources) {
                 ajouterAuZip(zos, src, src.name)
@@ -194,10 +195,11 @@ object FileUtils {
 
     private fun decompresserTarGz(archive: File, dossierCible: File): Boolean {
         val baseCanon = dossierCible.canonicalPath + File.separator
-        ArchiveStreamFactory().createArchiveInputStream(
+        val stream: ArchiveInputStream<ArchiveEntry> = ArchiveStreamFactory().createArchiveInputStream(
             ArchiveStreamFactory.TAR,
             GzipCompressorInputStream(BufferedInputStream(FileInputStream(archive)))
-        ).use { ais ->
+        )
+        stream.use { ais ->
             var entry: ArchiveEntry? = ais.nextEntry
             while (entry != null) {
                 val outFile = File(dossierCible, entry.name)
@@ -217,7 +219,8 @@ object FileUtils {
     private fun decompresserGenerique(archive: File, dossierCible: File): Boolean {
         val baseCanon = dossierCible.canonicalPath + File.separator
         BufferedInputStream(FileInputStream(archive)).use { bis ->
-            ArchiveStreamFactory().createArchiveInputStream(bis).use { ais ->
+            val stream: ArchiveInputStream<ArchiveEntry> = ArchiveStreamFactory().createArchiveInputStream(bis)
+            stream.use { ais ->
                 var entry: ArchiveEntry? = ais.nextEntry
                 while (entry != null) {
                     val outFile = File(dossierCible, entry.name)
