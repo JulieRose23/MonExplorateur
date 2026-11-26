@@ -2,6 +2,7 @@ package com.monexplorateur.app.xposed
 
 import android.app.Activity
 import android.app.Instrumentation
+import android.content.ContextWrapper
 import android.content.Intent
 import android.os.Build
 import de.robv.android.xposed.IXposedHookLoadPackage
@@ -18,6 +19,7 @@ class FilePickerHook : IXposedHookLoadPackage {
 
     override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
         if (lpparam.packageName == TARGET_PACKAGE) return
+        XposedBridge.log("MonExplorateur Hook: module actif dans ${lpparam.packageName}")
 
         val hookCallback = object : XC_MethodHook() {
             override fun beforeHookedMethod(param: MethodHookParam) {
@@ -37,38 +39,52 @@ class FilePickerHook : IXposedHookLoadPackage {
                     intent
                 } ?: return
 
-                val action = cible.action ?: return
-                if (cible.`package` == TARGET_PACKAGE) return
+                if (cible.`package` == TARGET_PACKAGE || cible.component?.packageName == TARGET_PACKAGE) return
+
+                val action = cible.action
+                val pkgComposant = cible.component?.packageName.orEmpty()
+
+                // Ignore volontairement OPEN_DOCUMENT_TREE (acces dossier) et CREATE_DOCUMENT (Enregistrer sous)
+                if (action == Intent.ACTION_OPEN_DOCUMENT_TREE || action == Intent.ACTION_CREATE_DOCUMENT) return
 
                 val estActionFichier = action == Intent.ACTION_OPEN_DOCUMENT ||
                     action == Intent.ACTION_GET_CONTENT ||
                     action == Intent.ACTION_PICK ||
-                    action == ACTION_PICK_IMAGES
+                    action == ACTION_PICK_IMAGES ||
+                    pkgComposant.contains("documentsui", ignoreCase = true)
 
                 if (!estActionFichier) return
 
                 val mimeType = cible.type?.takeIf { it.isNotEmpty() } ?: "*/*"
                 val multiple = cible.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false)
+                val mimeTypesExtra = cible.getStringArrayExtra(Intent.EXTRA_MIME_TYPES)
 
                 val nouvelIntent = Intent(Intent.ACTION_GET_CONTENT).apply {
                     type = mimeType
                     addCategory(Intent.CATEGORY_OPENABLE)
                     putExtra(Intent.EXTRA_ALLOW_MULTIPLE, multiple)
+                    if (mimeTypesExtra != null) {
+                        putExtra(Intent.EXTRA_MIME_TYPES, mimeTypesExtra)
+                    }
+                    component = null
+                    selector = null
                     setPackage(TARGET_PACKAGE)
                 }
 
-                // Modifie aussi l'Intent d'origine en place au cas ou l'app conserve sa reference
                 cible.action = Intent.ACTION_GET_CONTENT
+                cible.component = null
+                cible.selector = null
                 cible.setDataAndType(null, mimeType)
                 cible.addCategory(Intent.CATEGORY_OPENABLE)
                 cible.setPackage(TARGET_PACKAGE)
 
                 args[intentIndex] = nouvelIntent
-                XposedBridge.log("MonExplorateur Hook [${lpparam.packageName}]: $action -> $TARGET_PACKAGE")
+                XposedBridge.log("MonExplorateur Hook [${lpparam.packageName}]: action=$action comp=$pkgComposant -> $TARGET_PACKAGE")
             }
         }
 
         XposedBridge.hookAllMethods(Activity::class.java, "startActivityForResult", hookCallback)
+        XposedBridge.hookAllMethods(ContextWrapper::class.java, "startActivity", hookCallback)
         XposedBridge.hookAllMethods(Instrumentation::class.java, "execStartActivity", hookCallback)
     }
 }
