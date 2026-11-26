@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="props_title">Properties</string>
+    <string name="props_name">Name</string>
+    <string name="props_path">Path</string>
+    <string name="props_type">Type</string>
+    <string name="props_type_file">File</string>
+    <string name="props_type_folder">Folder</string>
+    <string name="props_type_archive">Archive</string>
+    <string name="props_size">Size</string>
+    <string name="props_modified">Modified</string>
+    <string name="props_md5">MD5 Checksum</string>
+    <string name="props_md5_calculating">Calculating MD5...</string>
+    <string name="props_md5_compute">Calculate MD5</string>
+    <string name="props_md5_copied">MD5 copied</string>
+    <string name="props_close">Close</string>
+</resources>

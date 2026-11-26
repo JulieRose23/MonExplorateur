@@ -1,3 +1,18 @@
 ﻿<resources>
     <string name="app_name">MonExplorateur</string>
+    <string name="props_title">Propriétés</string>
+    <string name="props_name">Nom</string>
+    <string name="props_path">Chemin</string>
+    <string name="props_type">Type</string>
+    <string name="props_type_file">Fichier</string>
+    <string name="props_type_folder">Dossier</string>
+    <string name="props_type_archive">Archive</string>
+    <string name="props_size">Taille</string>
+    <string name="props_modified">Modifié le</string>
+    <string name="props_md5">Empreinte MD5</string>
+    <string name="props_md5_calculating">Calcul MD5 en cours...</string>
+    <string name="props_md5_compute">Calculer MD5</string>
+    <string name="props_md5_copied">MD5 copié</string>
+    <string name="props_close">Fermer</string>
 </resources>
+
