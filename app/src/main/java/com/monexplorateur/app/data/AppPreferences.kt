@@ -5,11 +5,19 @@ import com.monexplorateur.app.ui.theme.ModeTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
+enum class LangueApp(val code: String, val libelle: String) {
+    FR("fr", "Français"),
+    EN("en", "English")
+}
+
 object AppPreferences {
     private const val PREFS_NAME = "mon_explorateur_prefs"
 
     private val _modeTheme = MutableStateFlow(ModeTheme.SYSTEME)
     val modeTheme: StateFlow<ModeTheme> = _modeTheme
+
+    private val _langue = MutableStateFlow(LangueApp.FR)
+    val langue: StateFlow<LangueApp> = _langue
 
     private val _rootActive = MutableStateFlow(false)
     val rootActive: StateFlow<Boolean> = _rootActive
@@ -21,6 +29,8 @@ object AppPreferences {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val themeName = prefs.getString("theme", ModeTheme.SYSTEME.name) ?: ModeTheme.SYSTEME.name
         _modeTheme.value = runCatching { ModeTheme.valueOf(themeName) }.getOrDefault(ModeTheme.SYSTEME)
+        val langName = prefs.getString("langue", LangueApp.FR.name) ?: LangueApp.FR.name
+        _langue.value = runCatching { LangueApp.valueOf(langName) }.getOrDefault(LangueApp.FR)
         _rootActive.value = prefs.getBoolean("root_active", false)
         _shizukuActive.value = prefs.getBoolean("shizuku_active", false)
     }
@@ -28,6 +38,11 @@ object AppPreferences {
     fun setModeTheme(context: Context, mode: ModeTheme) {
         _modeTheme.value = mode
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().putString("theme", mode.name).apply()
+    }
+
+    fun setLangue(context: Context, langue: LangueApp) {
+        _langue.value = langue
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().putString("langue", langue.name).apply()
     }
 
     fun setRootActive(context: Context, actif: Boolean) {

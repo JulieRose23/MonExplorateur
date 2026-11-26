@@ -1,7 +1,6 @@
 ﻿package com.monexplorateur.app.ui.screens
 
 import android.widget.Toast
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -30,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -42,7 +42,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.monexplorateur.app.data.AppPreferences
 import com.monexplorateur.app.data.ElementCorbeille
+import com.monexplorateur.app.data.LangueApp
 import com.monexplorateur.app.data.TrashManager
 import com.monexplorateur.app.ui.components.BadgeIconeElement
 import kotlinx.coroutines.launch
@@ -56,6 +58,8 @@ private val FORMATEUR_DATE_CORBEILLE = SimpleDateFormat("dd/MM/yyyy HH:mm", Loca
 fun CorbeilleScreen(paddingBasNavigation: PaddingValues = PaddingValues(0.dp)) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val langue by AppPreferences.langue.collectAsState()
+    val en = langue == LangueApp.EN
 
     var itemsCorbeille by remember { mutableStateOf<List<ElementCorbeille>>(emptyList()) }
     var refreshTrigger by remember { mutableIntStateOf(0) }
@@ -80,7 +84,7 @@ fun CorbeilleScreen(paddingBasNavigation: PaddingValues = PaddingValues(0.dp)) {
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
             ) {
                 Text(
-                    text = "${itemsCorbeille.size} élément(s) dans la corbeille",
+                    text = if (en) "${itemsCorbeille.size} item(s) in trash" else "${itemsCorbeille.size} élément(s) dans la corbeille",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f)
@@ -92,7 +96,7 @@ fun CorbeilleScreen(paddingBasNavigation: PaddingValues = PaddingValues(0.dp)) {
                     ) {
                         Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Vider")
+                        Text(if (en) "Empty" else "Vider")
                     }
                 }
             }
@@ -110,7 +114,7 @@ fun CorbeilleScreen(paddingBasNavigation: PaddingValues = PaddingValues(0.dp)) {
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "La corbeille est vide",
+                        text = if (en) "Trash is empty" else "La corbeille est vide",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -143,12 +147,12 @@ fun CorbeilleScreen(paddingBasNavigation: PaddingValues = PaddingValues(0.dp)) {
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = "Supprimé le $dateSuppr",
+                                text = if (en) "Deleted on $dateSuppr" else "Supprimé le $dateSuppr",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "Origine : ${item.cheminOriginal}",
+                                text = if (en) "Origin: ${item.cheminOriginal}" else "Origine : ${item.cheminOriginal}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                                 maxLines = 1,
@@ -160,7 +164,8 @@ fun CorbeilleScreen(paddingBasNavigation: PaddingValues = PaddingValues(0.dp)) {
                                 val ok = TrashManager.restaurer(context, item)
                                 Toast.makeText(
                                     context,
-                                    if (ok) "Restauré : ${item.nomOriginal}" else "Échec de la restauration",
+                                    if (ok) (if (en) "Restored: ${item.nomOriginal}" else "Restauré : ${item.nomOriginal}")
+                                    else (if (en) "Restore failed" else "Échec de la restauration"),
                                     Toast.LENGTH_SHORT
                                 ).show()
                                 refreshTrigger++
@@ -168,14 +173,14 @@ fun CorbeilleScreen(paddingBasNavigation: PaddingValues = PaddingValues(0.dp)) {
                         }) {
                             Icon(
                                 Icons.Default.Refresh,
-                                contentDescription = "Restaurer",
+                                contentDescription = if (en) "Restore" else "Restaurer",
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
                         IconButton(onClick = { itemASupprimerDef = item }) {
                             Icon(
                                 Icons.Default.Delete,
-                                contentDescription = "Supprimer définitivement",
+                                contentDescription = if (en) "Delete permanently" else "Supprimer définitivement",
                                 tint = MaterialTheme.colorScheme.error
                             )
                         }
@@ -189,20 +194,25 @@ fun CorbeilleScreen(paddingBasNavigation: PaddingValues = PaddingValues(0.dp)) {
     if (confirmerVider) {
         AlertDialog(
             onDismissRequest = { confirmerVider = false },
-            title = { Text("Vider la corbeille ?") },
-            text = { Text("Tous les éléments seront supprimés définitivement et ne pourront plus être restaurés.") },
+            title = { Text(if (en) "Empty trash?" else "Vider la corbeille ?") },
+            text = {
+                Text(
+                    if (en) "All items will be permanently deleted and cannot be restored."
+                    else "Tous les éléments seront supprimés définitivement et ne pourront plus être restaurés."
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     confirmerVider = false
                     scope.launch {
                         TrashManager.viderCorbeille(context)
                         refreshTrigger++
-                        Toast.makeText(context, "Corbeille vidée", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, if (en) "Trash emptied" else "Corbeille vidée", Toast.LENGTH_SHORT).show()
                     }
-                }) { Text("Vider", color = MaterialTheme.colorScheme.error) }
+                }) { Text(if (en) "Empty" else "Vider", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmerVider = false }) { Text("Annuler") }
+                TextButton(onClick = { confirmerVider = false }) { Text(if (en) "Cancel" else "Annuler") }
             }
         )
     }
@@ -210,20 +220,25 @@ fun CorbeilleScreen(paddingBasNavigation: PaddingValues = PaddingValues(0.dp)) {
     itemASupprimerDef?.let { cible ->
         AlertDialog(
             onDismissRequest = { itemASupprimerDef = null },
-            title = { Text("Supprimer définitivement ?") },
-            text = { Text("Supprimer « ${cible.nomOriginal} » de façon irréversible ?") },
+            title = { Text(if (en) "Delete permanently?" else "Supprimer définitivement ?") },
+            text = {
+                Text(
+                    if (en) "Permanently delete \"${cible.nomOriginal}\"?"
+                    else "Supprimer « ${cible.nomOriginal} » de façon irréversible ?"
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     itemASupprimerDef = null
                     scope.launch {
                         TrashManager.supprimerDefinitivement(context, cible)
                         refreshTrigger++
-                        Toast.makeText(context, "Supprimé définitivement", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, if (en) "Permanently deleted" else "Supprimé définitivement", Toast.LENGTH_SHORT).show()
                     }
-                }) { Text("Supprimer", color = MaterialTheme.colorScheme.error) }
+                }) { Text(if (en) "Delete" else "Supprimer", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { itemASupprimerDef = null }) { Text("Annuler") }
+                TextButton(onClick = { itemASupprimerDef = null }) { Text(if (en) "Cancel" else "Annuler") }
             }
         )
     }

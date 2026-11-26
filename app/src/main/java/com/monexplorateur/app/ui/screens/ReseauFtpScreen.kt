@@ -444,3 +444,4 @@ private fun formaterTailleFtp(octets: Long): String {
     val go = mo / 1024.0
     return String.format(Locale.getDefault(), "%.2f Go", go)
 }
+

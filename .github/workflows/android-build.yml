@@ -1,13 +1,17 @@
-﻿name: Build Android APK
+﻿name: Build & Release Android APK
 
 on:
   push:
     branches: [ "main" ]
+    tags: [ "v*" ]
   workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -43,8 +47,31 @@ jobs:
       - name: Build Release APK
         run: gradle assembleRelease --no-daemon
 
-      - name: Upload APK
+      - name: Rename APK for Release
+        run: |
+          VERSION=${GITHUB_REF_NAME:-v1.0.0}
+          cp app/build/outputs/apk/release/app-release.apk "MonExplorateur-${VERSION}.apk"
+
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v5
         with:
           name: MonExplorateur-release-apk
-          path: app/build/outputs/apk/release/app-release.apk
+          path: MonExplorateur-*.apk
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: MonExplorateur-*.apk
+          generate_release_notes: true
+          body: |
+            ## 🚀 MonExplorateur ${{ github.ref_name }}
+
+            ### ✨ Fonctionnalités / Features
+            - **Explorateur complet / Full File Manager** : navigation rapide, sélection multiple, copier/coller/déplacer, recherche et tri.
+            - **Accès Shizuku & Root** : accès à `/Android/data` via Shizuku et à `/` via Root (`su`), activables à la demande dans les Réglages.
+            - **Archives multi-formats** : création et extraction `.zip`, `.7z`, `.tar.gz`, et extraction `.rar`.
+            - **Corbeille intégrée / Trash Bin** : suppression réversible avec restauration à l'emplacement d'origine.
+            - **Serveur & Client FTP** : partage de fichiers en Wi-Fi sans câble.
+            - **Inspecteur & Hash** : calcul MD5, SHA-1, SHA-256 et éditeur de texte intégré.
+            - **Bilingue FR / EN & Thèmes** : changement instantané Français/English et thèmes Clair/Sombre/Système.

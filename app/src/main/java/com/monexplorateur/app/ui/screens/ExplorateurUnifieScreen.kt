@@ -81,6 +81,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.monexplorateur.app.data.AppPreferences
+import com.monexplorateur.app.data.LangueApp
 import com.monexplorateur.app.data.ElementFichier
 import com.monexplorateur.app.data.SourceFichier
 import com.monexplorateur.app.data.TrashManager
@@ -126,6 +127,8 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
 
     var aPermission by remember { mutableStateOf(verifierPermission()) }
     val rootActive by AppPreferences.rootActive.collectAsState()
+    val langue by AppPreferences.langue.collectAsState()
+    val en = langue == LangueApp.EN
     val shizukuActive by AppPreferences.shizukuActive.collectAsState()
     val rootConnecte by RootManager.serviceConnecte.collectAsState()
     val shizukuConnecte by ShizukuManager.serviceConnecte.collectAsState()
@@ -248,7 +251,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
         floatingActionButton = {
             if (!enModeSelection && !rechercheActive) {
                 FloatingActionButton(onClick = { dialogueNouveauDossier = true }) {
-                    Icon(Icons.Default.Add, contentDescription = "Nouveau dossier")
+                    Icon(Icons.Default.Add, contentDescription = if (en) "New folder" else "Nouveau dossier")
                 }
             }
         },
@@ -289,7 +292,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                             }
                         }) { Text("Coller ici") }
                         IconButton(onClick = { pressePapier = null }) {
-                            Icon(Icons.Default.Close, contentDescription = "Annuler")
+                            Icon(Icons.Default.Close, contentDescription = if (en) "Cancel" else "Annuler")
                         }
                     }
                 }
@@ -335,7 +338,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                             IconButton(onClick = {
                                 elementsASupprimer = listeAffichee.filter { it.cheminComplet in selection }
                             }) {
-                                Icon(Icons.Default.Delete, contentDescription = "Supprimer", tint = MaterialTheme.colorScheme.error)
+                                Icon(Icons.Default.Delete, contentDescription = if (en) "Delete" else "Supprimer", tint = MaterialTheme.colorScheme.error)
                             }
                         }
                     }
@@ -355,7 +358,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                                 rechercheActive = false
                                 requeteRecherche = ""
                             }) {
-                                Icon(Icons.Default.Close, contentDescription = "Fermer")
+                                Icon(Icons.Default.Close, contentDescription = if (en) "Close" else "Fermer")
                             }
                         }
                     }
@@ -395,7 +398,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                             ) {
                                 AssistChip(
                                     onClick = { cheminCourant = racineStockage },
-                                    label = { Text("Mémoire interne") }
+                                    label = { Text(if (en) "Internal Storage" else "Mémoire interne") }
                                 )
                                 if (shizukuActive) {
                                     AssistChip(
@@ -406,7 +409,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                                 if (rootActive) {
                                     AssistChip(
                                         onClick = { cheminCourant = "/" },
-                                        label = { Text("Racine / (Root)") }
+                                        label = { Text(if (en) "Root /" else "Racine / (Root)") }
                                     )
                                 }
                             }
@@ -532,10 +535,10 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                             Toast.makeText(context, "Échec de la compression", Toast.LENGTH_SHORT).show()
                         }
                     }
-                }) { Text("Compresser") }
+                }) { Text(if (en) "Compress" else "Compresser") }
             },
             dismissButton = {
-                TextButton(onClick = { elementsACompresser = emptyList() }) { Text("Annuler") }
+                TextButton(onClick = { elementsACompresser = emptyList() }) { Text(if (en) "Cancel" else "Annuler") }
             }
         )
     }
@@ -564,7 +567,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                         scope.launch {
                             extraireArchiveVers(context, cible, cheminCourant) { compteurRefresh++ }
                         }
-                    }) { Text("Extraire ici") }
+                    }) { Text(if (en) "Extract here" else "Extraire ici") }
                 }
             }
         )
@@ -626,10 +629,10 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                     scope.launch {
                         extraireArchiveVers(context, cible, dest) { compteurRefresh++ }
                     }
-                }) { Text("Extraire ici") }
+                }) { Text(if (en) "Extract here" else "Extraire ici") }
             },
             dismissButton = {
-                TextButton(onClick = { archiveDestinationPicker = null }) { Text("Annuler") }
+                TextButton(onClick = { archiveDestinationPicker = null }) { Text(if (en) "Cancel" else "Annuler") }
             }
         )
     }
@@ -679,7 +682,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { elementProprietes = null }) { Text("Fermer") }
+                TextButton(onClick = { elementProprietes = null }) { Text(if (en) "Close" else "Fermer") }
             }
         )
     }
@@ -689,7 +692,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
         var nomDossier by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { dialogueNouveauDossier = false },
-            title = { Text("Nouveau dossier") },
+            title = { Text(if (en) "New folder" else "Nouveau dossier") },
             text = {
                 OutlinedTextField(
                     value = nomDossier,
@@ -709,10 +712,10 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                         }
                     }
                     dialogueNouveauDossier = false
-                }) { Text("Créer") }
+                }) { Text(if (en) "Create" else "Créer") }
             },
             dismissButton = {
-                TextButton(onClick = { dialogueNouveauDossier = false }) { Text("Annuler") }
+                TextButton(onClick = { dialogueNouveauDossier = false }) { Text(if (en) "Cancel" else "Annuler") }
             }
         )
     }
@@ -722,7 +725,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
         var nouveauNom by remember { mutableStateOf(cible.nom) }
         AlertDialog(
             onDismissRequest = { elementARenommer = null },
-            title = { Text("Renommer") },
+            title = { Text(if (en) "Rename" else "Renommer") },
             text = {
                 OutlinedTextField(
                     value = nouveauNom,
@@ -743,7 +746,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                 }) { Text("Valider") }
             },
             dismissButton = {
-                TextButton(onClick = { elementARenommer = null }) { Text("Annuler") }
+                TextButton(onClick = { elementARenommer = null }) { Text(if (en) "Cancel" else "Annuler") }
             }
         )
     }
@@ -772,11 +775,11 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                         compteurRefresh++
                         Toast.makeText(context, "$okCount élément(s) déplacé(s) dans la corbeille", Toast.LENGTH_SHORT).show()
                     }
-                }) { Text("Corbeille", color = MaterialTheme.colorScheme.primary) }
+                }) { Text(if (en) "Trash" else "Corbeille", color = MaterialTheme.colorScheme.primary) }
             },
             dismissButton = {
                 Row {
-                    TextButton(onClick = { elementsASupprimer = emptyList() }) { Text("Annuler") }
+                    TextButton(onClick = { elementsASupprimer = emptyList() }) { Text(if (en) "Cancel" else "Annuler") }
                     TextButton(onClick = {
                         val aSuppr = elementsASupprimer
                         elementsASupprimer = emptyList()
@@ -789,7 +792,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                             compteurRefresh++
                             Toast.makeText(context, "$okCount élément(s) supprimé(s) définitivement", Toast.LENGTH_SHORT).show()
                         }
-                    }) { Text("Définitif", color = MaterialTheme.colorScheme.error) }
+                    }) { Text(if (en) "Permanent" else "Définitif", color = MaterialTheme.colorScheme.error) }
                 }
             }
         )
@@ -873,7 +876,7 @@ private fun LigneElementUnifie(
                 DropdownMenuItem(text = { Text("Sélectionner") }, onClick = { menuOuvert = false; onLongClick() })
                 DropdownMenuItem(text = { Text("Copier") }, onClick = { menuOuvert = false; onCopier() })
                 DropdownMenuItem(text = { Text("Déplacer") }, onClick = { menuOuvert = false; onCouper() })
-                DropdownMenuItem(text = { Text("Renommer") }, onClick = { menuOuvert = false; onRenommer() })
+                DropdownMenuItem(text = { Text(if (en) "Rename" else "Renommer") }, onClick = { menuOuvert = false; onRenommer() })
                 if (!item.estDossier && FileUtils.estArchiveSupportee(item.nom)) {
                     DropdownMenuItem(text = { Text("Extraire...") }, onClick = { menuOuvert = false; onExtraire() })
                 } else {
@@ -881,7 +884,7 @@ private fun LigneElementUnifie(
                 }
                 DropdownMenuItem(text = { Text("Propriétés / MD5") }, onClick = { menuOuvert = false; onProprietes() })
                 DropdownMenuItem(
-                    text = { Text("Supprimer", color = MaterialTheme.colorScheme.error) },
+                    text = { Text(if (en) "Delete" else "Supprimer", color = MaterialTheme.colorScheme.error) },
                     onClick = { menuOuvert = false; onSupprimer() }
                 )
             }
@@ -943,4 +946,5 @@ private fun formaterTailleUnifie(octets: Long): String {
     val go = mo / 1024.0
     return String.format(Locale.getDefault(), "%.2f Go", go)
 }
+
 

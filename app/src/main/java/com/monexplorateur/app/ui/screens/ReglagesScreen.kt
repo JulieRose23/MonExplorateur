@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.monexplorateur.app.data.AppPreferences
+import com.monexplorateur.app.data.LangueApp
 import com.monexplorateur.app.root.RootManager
 import com.monexplorateur.app.shizuku.ShizukuManager
 import com.monexplorateur.app.ui.theme.ModeTheme
@@ -40,8 +41,10 @@ fun ReglagesScreen(paddingBasNavigation: PaddingValues = PaddingValues(0.dp)) {
     val scope = rememberCoroutineScope()
 
     val modeTheme by AppPreferences.modeTheme.collectAsState()
+    val langue by AppPreferences.langue.collectAsState()
     val rootActive by AppPreferences.rootActive.collectAsState()
     val shizukuActive by AppPreferences.shizukuActive.collectAsState()
+    val en = langue == LangueApp.EN
 
     val shizukuDispo by ShizukuManager.estDisponible.collectAsState()
     val shizukuPerm by ShizukuManager.aPermission.collectAsState()
@@ -60,14 +63,36 @@ fun ReglagesScreen(paddingBasNavigation: PaddingValues = PaddingValues(0.dp)) {
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Apparence", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("Thème de l'application", style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    if (en) "Appearance & Language" else "Apparence & Langue",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(if (en) "Language" else "Langue", style = MaterialTheme.typography.bodyLarge)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LangueApp.entries.forEach { item ->
+                        FilterChip(
+                            selected = langue == item,
+                            onClick = { AppPreferences.setLangue(context, item) },
+                            label = { Text(item.libelle) }
+                        )
+                    }
+                }
+
+                HorizontalDivider()
+
+                Text(if (en) "App Theme" else "Thème de l'application", style = MaterialTheme.typography.bodyLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ModeTheme.entries.forEach { mode ->
+                        val nomTheme = when (mode) {
+                            ModeTheme.CLAIR -> if (en) "Light" else "Clair"
+                            ModeTheme.SOMBRE -> if (en) "Dark" else "Sombre"
+                            ModeTheme.SYSTEME -> if (en) "System" else "Système"
+                        }
                         FilterChip(
                             selected = modeTheme == mode,
                             onClick = { AppPreferences.setModeTheme(context, mode) },
-                            label = { Text(mode.libelle) }
+                            label = { Text(nomTheme) }
                         )
                     }
                 }
@@ -79,19 +104,26 @@ fun ReglagesScreen(paddingBasNavigation: PaddingValues = PaddingValues(0.dp)) {
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Accès Système & Privilèges", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    if (en) "System Access & Privileges" else "Accès Système & Privilèges",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Mode Shizuku (/Android/data)", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            if (en) "Shizuku Mode (/Android/data)" else "Mode Shizuku (/Android/data)",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
                         val etatShizuku = when {
-                            !shizukuActive -> "Désactivé — activez pour autoriser Shizuku"
-                            shizukuDispo && shizukuPerm -> "Connecté et autorisé"
-                            shizukuDispo -> "Service détecté — Autorisation requise"
-                            else -> "Application Shizuku non démarrée"
+                            !shizukuActive -> if (en) "Disabled — enable to authorize Shizuku" else "Désactivé — activez pour autoriser Shizuku"
+                            shizukuDispo && shizukuPerm -> if (en) "Connected and authorized" else "Connecté et autorisé"
+                            shizukuDispo -> if (en) "Service detected — Authorization required" else "Service détecté — Autorisation requise"
+                            else -> if (en) "Shizuku service not running" else "Application Shizuku non démarrée"
                         }
                         Text(
                             text = etatShizuku,
@@ -120,12 +152,15 @@ fun ReglagesScreen(paddingBasNavigation: PaddingValues = PaddingValues(0.dp)) {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Accès Superutilisateur (Root / su)", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            if (en) "Superuser Access (Root / su)" else "Accès Superutilisateur (Root / su)",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
                         val etatRoot = when {
-                            !rootActive -> "Désactivé (navigation limitée au stockage interne)"
-                            rootStatut == true -> "Accès Root accordé (partitions / débloquées)"
-                            rootStatut == false -> "Appareil non rooté ou permission refusée"
-                            else -> "Vérification en cours..."
+                            !rootActive -> if (en) "Disabled (limited to internal storage)" else "Désactivé (navigation limitée au stockage interne)"
+                            rootStatut == true -> if (en) "Root access granted (/ partitions unlocked)" else "Accès Root accordé (partitions / débloquées)"
+                            rootStatut == false -> if (en) "Device not rooted or permission denied" else "Appareil non rooté ou permission refusée"
+                            else -> if (en) "Checking..." else "Vérification en cours..."
                         }
                         Text(
                             text = etatRoot,
@@ -149,4 +184,3 @@ fun ReglagesScreen(paddingBasNavigation: PaddingValues = PaddingValues(0.dp)) {
         Spacer(modifier = Modifier.height(16.dp))
     }
 }
-

@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import com.monexplorateur.app.data.AppPreferences
+import com.monexplorateur.app.data.LangueApp
 import com.monexplorateur.app.ui.components.IconeDossierModerne
 import com.monexplorateur.app.ui.screens.CorbeilleScreen
 import com.monexplorateur.app.ui.screens.ExplorateurUnifieScreen
@@ -38,11 +39,15 @@ import com.monexplorateur.app.ui.screens.ReglagesScreen
 import com.monexplorateur.app.ui.screens.ReseauFtpScreen
 import com.monexplorateur.app.ui.theme.MonExplorateurTheme
 
-enum class OngletPrincipal(val titre: String) {
-    STOCKAGE("Stockage"),
-    CORBEILLE("Corbeille"),
-    FTP("FTP"),
-    REGLAGES("Réglages")
+enum class OngletPrincipal {
+    STOCKAGE, CORBEILLE, FTP, REGLAGES;
+
+    fun titre(en: Boolean): String = when (this) {
+        STOCKAGE -> if (en) "Storage" else "Stockage"
+        CORBEILLE -> if (en) "Trash" else "Corbeille"
+        FTP -> "FTP"
+        REGLAGES -> if (en) "Settings" else "Réglages"
+    }
 }
 
 class MainActivity : ComponentActivity() {
@@ -62,6 +67,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun ApplicationPrincipale() {
     var ongletActif by remember { mutableStateOf(OngletPrincipal.STOCKAGE) }
+    val langue by AppPreferences.langue.collectAsState()
+    val en = langue == LangueApp.EN
 
     Scaffold(
         topBar = {
@@ -70,9 +77,9 @@ fun ApplicationPrincipale() {
                     Text(
                         text = when (ongletActif) {
                             OngletPrincipal.STOCKAGE -> "MonExplorateur"
-                            OngletPrincipal.CORBEILLE -> "Corbeille"
-                            OngletPrincipal.FTP -> "Réseau FTP"
-                            OngletPrincipal.REGLAGES -> "Réglages"
+                            OngletPrincipal.CORBEILLE -> if (en) "Trash" else "Corbeille"
+                            OngletPrincipal.FTP -> if (en) "FTP Network" else "Réseau FTP"
+                            OngletPrincipal.REGLAGES -> if (en) "Settings" else "Réglages"
                         },
                         fontWeight = FontWeight.SemiBold
                     )
@@ -95,8 +102,8 @@ fun ApplicationPrincipale() {
                     NavigationBarItem(
                         selected = onglet == ongletActif,
                         onClick = { ongletActif = onglet },
-                        icon = { Icon(icone, contentDescription = onglet.titre) },
-                        label = { Text(onglet.titre) }
+                        icon = { Icon(icone, contentDescription = onglet.titre(en)) },
+                        label = { Text(onglet.titre(en)) }
                     )
                 }
             }
