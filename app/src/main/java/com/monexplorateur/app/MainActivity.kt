@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import com.monexplorateur.app.data.AppPreferences
 import com.monexplorateur.app.ui.components.IconeDossierModerne
+import com.monexplorateur.app.ui.screens.CorbeilleScreen
 import com.monexplorateur.app.ui.screens.ExplorateurUnifieScreen
 import com.monexplorateur.app.ui.screens.ReglagesScreen
 import com.monexplorateur.app.ui.screens.ReseauFtpScreen
@@ -39,6 +40,7 @@ import com.monexplorateur.app.ui.theme.MonExplorateurTheme
 
 enum class OngletPrincipal(val titre: String) {
     STOCKAGE("Stockage"),
+    CORBEILLE("Corbeille"),
     FTP("FTP"),
     REGLAGES("Réglages")
 }
@@ -68,6 +70,7 @@ fun ApplicationPrincipale() {
                     Text(
                         text = when (ongletActif) {
                             OngletPrincipal.STOCKAGE -> "MonExplorateur"
+                            OngletPrincipal.CORBEILLE -> "Corbeille"
                             OngletPrincipal.FTP -> "Réseau FTP"
                             OngletPrincipal.REGLAGES -> "Réglages"
                         },
@@ -85,6 +88,7 @@ fun ApplicationPrincipale() {
                 OngletPrincipal.entries.forEach { onglet ->
                     val icone: ImageVector = when (onglet) {
                         OngletPrincipal.STOCKAGE -> IconeDossierModerne
+                        OngletPrincipal.CORBEILLE -> Icons.Default.Delete
                         OngletPrincipal.FTP -> Icons.Default.Share
                         OngletPrincipal.REGLAGES -> Icons.Default.Settings
                     }
@@ -106,6 +110,7 @@ fun ApplicationPrincipale() {
             val basPadding = PaddingValues(bottom = innerPadding.calculateBottomPadding())
             when (ongletActif) {
                 OngletPrincipal.STOCKAGE -> ExplorateurUnifieScreen(paddingBasNavigation = basPadding)
+                OngletPrincipal.CORBEILLE -> CorbeilleScreen(paddingBasNavigation = basPadding)
                 OngletPrincipal.FTP -> Box(modifier = Modifier.padding(basPadding)) { ReseauFtpScreen() }
                 OngletPrincipal.REGLAGES -> ReglagesScreen(paddingBasNavigation = basPadding)
             }

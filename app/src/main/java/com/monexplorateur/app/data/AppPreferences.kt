@@ -14,7 +14,7 @@ object AppPreferences {
     private val _rootActive = MutableStateFlow(false)
     val rootActive: StateFlow<Boolean> = _rootActive
 
-    private val _shizukuActive = MutableStateFlow(true)
+    private val _shizukuActive = MutableStateFlow(false)
     val shizukuActive: StateFlow<Boolean> = _shizukuActive
 
     fun init(context: Context) {
@@ -22,7 +22,7 @@ object AppPreferences {
         val themeName = prefs.getString("theme", ModeTheme.SYSTEME.name) ?: ModeTheme.SYSTEME.name
         _modeTheme.value = runCatching { ModeTheme.valueOf(themeName) }.getOrDefault(ModeTheme.SYSTEME)
         _rootActive.value = prefs.getBoolean("root_active", false)
-        _shizukuActive.value = prefs.getBoolean("shizuku_active", true)
+        _shizukuActive.value = prefs.getBoolean("shizuku_active", false)
     }
 
     fun setModeTheme(context: Context, mode: ModeTheme) {

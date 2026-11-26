@@ -1,5 +1,6 @@
 ﻿package com.monexplorateur.app.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -85,11 +86,11 @@ fun ReglagesScreen(paddingBasNavigation: PaddingValues = PaddingValues(0.dp)) {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Mode Shizuku (/Android/data & obb)", style = MaterialTheme.typography.bodyLarge)
+                        Text("Mode Shizuku (/Android/data)", style = MaterialTheme.typography.bodyLarge)
                         val etatShizuku = when {
-                            !shizukuActive -> "Désactivé"
+                            !shizukuActive -> "Désactivé — activez pour autoriser Shizuku"
                             shizukuDispo && shizukuPerm -> "Connecté et autorisé"
-                            shizukuDispo -> "Service actif — Autorisation requise"
+                            shizukuDispo -> "Service détecté — Autorisation requise"
                             else -> "Application Shizuku non démarrée"
                         }
                         Text(
@@ -102,7 +103,12 @@ fun ReglagesScreen(paddingBasNavigation: PaddingValues = PaddingValues(0.dp)) {
                         checked = shizukuActive,
                         onCheckedChange = { actif ->
                             AppPreferences.setShizukuActive(context, actif)
-                            if (actif) ShizukuManager.verifierEtat()
+                            if (actif) {
+                                val msg = ShizukuManager.demanderPermissionDepuisReglages()
+                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                            } else {
+                                ShizukuManager.deconnecter()
+                            }
                         }
                     )
                 }

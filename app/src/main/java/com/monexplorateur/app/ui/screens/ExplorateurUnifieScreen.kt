@@ -83,6 +83,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.monexplorateur.app.data.AppPreferences
 import com.monexplorateur.app.data.ElementFichier
 import com.monexplorateur.app.data.SourceFichier
+import com.monexplorateur.app.data.TrashManager
 import com.monexplorateur.app.data.UnifiedFileEngine
 import com.monexplorateur.app.root.RootManager
 import com.monexplorateur.app.shizuku.ShizukuManager
@@ -206,7 +207,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
 
     LaunchedEffect(cheminCourant, compteurRefresh, rootConnecte, shizukuConnecte, rootActive, shizukuActive) {
         chargement = true
-        fichiers = UnifiedFileEngine.listerDossier(cheminCourant)
+        fichiers = UnifiedFileEngine.listerDossier(cheminCourant).filterNot { it.nom == ".MonExplorateur_Corbeille" }
         chargement = false
     }
 
@@ -400,10 +401,6 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                                     AssistChip(
                                         onClick = { cheminCourant = "$racineStockage/Android/data" },
                                         label = { Text("Android/data (Shizuku)") }
-                                    )
-                                    AssistChip(
-                                        onClick = { cheminCourant = "$racineStockage/Android/obb" },
-                                        label = { Text("Android/obb") }
                                     )
                                 }
                                 if (rootActive) {
@@ -751,15 +748,15 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
         )
     }
 
-    // Dialogue Suppression (simple ou multiple)
+    // Dialogue Suppression : déplacement vers la corbeille (ou suppression définitive)
     if (elementsASupprimer.isNotEmpty()) {
         AlertDialog(
             onDismissRequest = { elementsASupprimer = emptyList() },
-            title = { Text("Supprimer ${elementsASupprimer.size} élément(s) ?") },
+            title = { Text("Mettre à la corbeille (${elementsASupprimer.size}) ?") },
             text = {
                 Text(
-                    if (elementsASupprimer.size == 1) "Supprimer définitivement « ${elementsASupprimer.first().nom} » ?"
-                    else "Supprimer définitivement ces ${elementsASupprimer.size} éléments ?"
+                    if (elementsASupprimer.size == 1) "Déplacer « ${elementsASupprimer.first().nom} » vers la corbeille ?"
+                    else "Déplacer ces ${elementsASupprimer.size} éléments vers la corbeille ?"
                 )
             },
             confirmButton = {
@@ -770,15 +767,30 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                     scope.launch {
                         var okCount = 0
                         for (el in aSuppr) {
-                            if (UnifiedFileEngine.supprimer(el)) okCount++
+                            if (TrashManager.mettreALaCorbeille(context, el)) okCount++
                         }
                         compteurRefresh++
-                        Toast.makeText(context, "$okCount élément(s) supprimé(s)", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "$okCount élément(s) déplacé(s) dans la corbeille", Toast.LENGTH_SHORT).show()
                     }
-                }) { Text("Supprimer", color = MaterialTheme.colorScheme.error) }
+                }) { Text("Corbeille", color = MaterialTheme.colorScheme.primary) }
             },
             dismissButton = {
-                TextButton(onClick = { elementsASupprimer = emptyList() }) { Text("Annuler") }
+                Row {
+                    TextButton(onClick = { elementsASupprimer = emptyList() }) { Text("Annuler") }
+                    TextButton(onClick = {
+                        val aSuppr = elementsASupprimer
+                        elementsASupprimer = emptyList()
+                        selection = emptySet()
+                        scope.launch {
+                            var okCount = 0
+                            for (el in aSuppr) {
+                                if (UnifiedFileEngine.supprimer(el)) okCount++
+                            }
+                            compteurRefresh++
+                            Toast.makeText(context, "$okCount élément(s) supprimé(s) définitivement", Toast.LENGTH_SHORT).show()
+                        }
+                    }) { Text("Définitif", color = MaterialTheme.colorScheme.error) }
+                }
             }
         )
     }
@@ -931,3 +943,4 @@ private fun formaterTailleUnifie(octets: Long): String {
     val go = mo / 1024.0
     return String.format(Locale.getDefault(), "%.2f Go", go)
 }
+
