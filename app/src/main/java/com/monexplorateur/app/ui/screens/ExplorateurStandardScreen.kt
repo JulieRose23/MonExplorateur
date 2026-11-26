@@ -26,8 +26,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
@@ -74,7 +74,6 @@ fun ExplorateurStandardScreen() {
 
     var aPermission by remember { mutableStateOf(verifierPermission()) }
 
-    // Réévalue la permission quand l'utilisateur revient des Paramètres Android
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -151,13 +150,11 @@ fun ExplorateurStandardScreen() {
             ?: emptyList()
     }
 
-    // Intercepte le bouton Retour du téléphone pour remonter d'un dossier
     BackHandler(enabled = dossierCourant.absolutePath != racine.absolutePath) {
         dossierCourant.parentFile?.let { dossierCourant = it }
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Barre de chemin actuel + bouton remonter
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainerLow,
             modifier = Modifier.fillMaxWidth()
@@ -226,9 +223,9 @@ private fun LigneFichier(fichier: File, onClick: () -> Unit) {
     }
     val sousTitre = if (fichier.isDirectory) {
         val nbElements = fichier.listFiles()?.size ?: 0
-        "$nbElements élément(s) • $dateFormatee"
+        "$nbElements élément(s) - $dateFormatee"
     } else {
-        "${formaterTaille(fichier.length())} • $dateFormatee"
+        "${formaterTaille(fichier.length())} - $dateFormatee"
     }
 
     Row(
@@ -239,7 +236,7 @@ private fun LigneFichier(fichier: File, onClick: () -> Unit) {
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Icon(
-            imageVector = if (fichier.isDirectory) Icons.Default.Folder else Icons.Default.Description,
+            imageVector = if (fichier.isDirectory) Icons.AutoMirrored.Filled.List else Icons.Default.Info,
             contentDescription = null,
             tint = if (fichier.isDirectory) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
             modifier = Modifier.size(32.dp)
