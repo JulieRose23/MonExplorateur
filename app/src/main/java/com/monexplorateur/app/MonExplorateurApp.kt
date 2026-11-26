@@ -16,7 +16,7 @@ class MonExplorateurApp : Application() {
         super.onCreate()
         AppPreferences.init(this)
         if (AppPreferences.shizukuActive.value) {
-            ShizukuManager.initialiser(this)
+            ShizukuManager.initialiser()
         }
         if (AppPreferences.rootActive.value) {
             appScope.launch {
@@ -25,3 +25,4 @@ class MonExplorateurApp : Application() {
         }
     }
 }
+

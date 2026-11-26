@@ -159,7 +159,7 @@ object ShizukuManager {
     fun copierVersCache(source: String, destCache: String): Boolean = try { fileService?.copyToLocalCache(source, destCache) == true } catch (_: Exception) { false }
 
     fun demanderPermissionDepuisReglages(context: android.content.Context): String {
-        initialiser(context)
+        initialiser()
         val pingOk = try {
             rikka.shizuku.Shizuku.pingBinder()
         } catch (_: Throwable) {
@@ -190,3 +190,4 @@ object ShizukuManager {
         _serviceConnecte.value = false
     }
 }
+
