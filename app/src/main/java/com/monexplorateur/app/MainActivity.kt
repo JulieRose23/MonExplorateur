@@ -4,14 +4,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Lock
@@ -39,21 +36,21 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.monexplorateur.app.ui.screens.ExplorateurRootScreen
 import com.monexplorateur.app.ui.screens.ExplorateurShizukuScreen
 import com.monexplorateur.app.ui.screens.ExplorateurStandardScreen
+import com.monexplorateur.app.ui.screens.ReseauFtpScreen
 import com.monexplorateur.app.ui.theme.MonExplorateurTheme
 import kotlinx.coroutines.launch
 
-enum class SectionNavigation(val titre: String, val description: String, val icone: ImageVector) {
-    STOCKAGE("Stockage interne", "Fichiers et dossiers standards (/storage/emulated/0)", Icons.Default.Search),
-    SHIZUKU("Mode Shizuku", "Accès protégé (/Android/data et /Android/obb)", Icons.Default.Lock),
-    ROOT("Accès Root (su)", "Partitions système complètes (/)", Icons.Default.Build),
-    FTP("Réseau FTP", "Client et serveur de transfert Wi-Fi local", Icons.Default.Share)
+enum class SectionNavigation(val titre: String, val icone: ImageVector) {
+    STOCKAGE("Stockage interne", Icons.Default.Search),
+    SHIZUKU("Mode Shizuku", Icons.Default.Lock),
+    ROOT("Accès Root (su)", Icons.Default.Build),
+    FTP("Réseau FTP", Icons.Default.Share)
 }
 
 class MainActivity : ComponentActivity() {
@@ -128,38 +125,9 @@ fun ApplicationPrincipale() {
                     SectionNavigation.STOCKAGE -> ExplorateurStandardScreen()
                     SectionNavigation.SHIZUKU -> ExplorateurShizukuScreen()
                     SectionNavigation.ROOT -> ExplorateurRootScreen()
-                    else -> EcranEnConstruction(sectionActive)
+                    SectionNavigation.FTP -> ReseauFtpScreen()
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun EcranEnConstruction(section: SectionNavigation) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = section.icone,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = section.titre,
-            style = MaterialTheme.typography.headlineSmall
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = section.description,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }

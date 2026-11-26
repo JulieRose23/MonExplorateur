@@ -13,7 +13,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "0.6"
+        versionName = "1.0"
     }
 
     buildTypes {
@@ -33,6 +33,17 @@ android {
         aidl = true
         buildConfig = true
     }
+    packaging {
+        resources {
+            excludes += listOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt"
+            )
+        }
+    }
 }
 
 dependencies {
@@ -50,4 +61,9 @@ dependencies {
     // API Root (libsu)
     implementation("com.github.topjohnwu.libsu:core:6.0.0")
     implementation("com.github.topjohnwu.libsu:service:6.0.0")
+
+    // Client & Serveur FTP (Apache)
+    implementation("commons-net:commons-net:3.11.1")
+    implementation("org.apache.ftpserver:ftpserver-core:1.2.0")
+    implementation("org.slf4j:slf4j-nop:2.0.16")
 }
