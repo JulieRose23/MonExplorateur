@@ -13,7 +13,7 @@ import androidx.core.content.ContextCompat
 class ArchiveNotificationHelper(private val context: Context) {
 
     companion object {
-        const val CHANNEL_ID = "archive_extraction_channel"
+        const val CHANNEL_ID = "archive_operations_channel"
         private const val BASE_NOTIFICATION_ID = 4010
     }
 
@@ -25,10 +25,10 @@ class ArchiveNotificationHelper(private val context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Extraction d'archives",
+                "Archives (Compression / Extraction)",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Progression de la decompression des archives"
+                description = "Progression de la compression et de la décompression des archives"
             }
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)
@@ -46,12 +46,18 @@ class ArchiveNotificationHelper(private val context: Context) {
         }
     }
 
-    fun showProgress(archiveName: String, progress: Int, indeterminate: Boolean = false, notifId: Int = BASE_NOTIFICATION_ID) {
+    fun showProgress(
+        title: String,
+        text: String,
+        progress: Int,
+        indeterminate: Boolean = false,
+        notifId: Int = BASE_NOTIFICATION_ID
+    ) {
         if (!canNotify()) return
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_sys_download)
-            .setContentTitle("Extraction : $archiveName")
-            .setContentText(if (indeterminate) "Decompression en cours..." else "$progress %")
+            .setContentTitle(title)
+            .setContentText(text)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
@@ -60,18 +66,20 @@ class ArchiveNotificationHelper(private val context: Context) {
         NotificationManagerCompat.from(context).notify(notifId, builder.build())
     }
 
-    fun showCompleted(archiveName: String, success: Boolean, message: String? = null, notifId: Int = BASE_NOTIFICATION_ID) {
+    fun showCompleted(
+        title: String,
+        text: String,
+        success: Boolean,
+        notifId: Int = BASE_NOTIFICATION_ID
+    ) {
         if (!canNotify()) return
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(
                 if (success) android.R.drawable.stat_sys_download_done
                 else android.R.drawable.stat_notify_error
             )
-            .setContentTitle(
-                if (success) "Extraction terminee : $archiveName"
-                else "Echec de l'extraction : $archiveName"
-            )
-            .setContentText(message ?: if (success) "Archive extraite avec succes" else "Erreur lors de l'extraction")
+            .setContentTitle(title)
+            .setContentText(text)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setOngoing(false)
             .setAutoCancel(true)
