@@ -1,4 +1,4 @@
-﻿package com.monexplorateur.app;
+package com.monexplorateur.app;
 
 interface IShizukuFileService {
     void destroy() = 16777114;
