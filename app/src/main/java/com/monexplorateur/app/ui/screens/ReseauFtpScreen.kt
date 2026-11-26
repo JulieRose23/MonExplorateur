@@ -63,7 +63,7 @@ import java.util.Locale
 @Composable
 fun ReseauFtpScreen() {
     var ongletSelectionne by remember { mutableIntStateOf(0) }
-    val onglets = listOf("Serveur FTP (Téléphone)", "Client FTP (Distant)")
+    val onglets = listOf(if (en) "FTP Server (Phone)" else "Serveur FTP (Téléphone)", if (en) "FTP Client (Remote)" else "Client FTP (Distant)")
 
     Column(modifier = Modifier.fillMaxSize()) {
         TabRow(selectedTabIndex = ongletSelectionne) {
@@ -107,7 +107,7 @@ private fun OngletServeurFtp() {
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = if (enCours) "Serveur FTP actif" else "Serveur FTP arrêté",
+                    text = if (enCours) if (en) "FTP Server active" else "Serveur FTP actif" else if (en) "FTP Server stopped" else "Serveur FTP arrêté",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -125,7 +125,7 @@ private fun OngletServeurFtp() {
                     )
                 } else {
                     Text(
-                        text = "Démarre le serveur pour accéder à la mémoire du téléphone depuis un PC sur le même Wi-Fi.",
+                        text = if (en) "Start the server to access phone storage from a PC on the same Wi-Fi." else "Démarre le serveur pour accéder à la mémoire du téléphone depuis un PC sur le même Wi-Fi.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -136,7 +136,7 @@ private fun OngletServeurFtp() {
         OutlinedTextField(
             value = portTexte,
             onValueChange = { portTexte = it },
-            label = { Text("Port (défaut : 2221)") },
+            label = { Text(if (en) "Port (default: 2221)" else "Port (défaut : 2221)") },
             enabled = !enCours,
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
@@ -146,7 +146,7 @@ private fun OngletServeurFtp() {
             OutlinedTextField(
                 value = utilisateur,
                 onValueChange = { utilisateur = it },
-                label = { Text("Utilisateur") },
+                label = { Text(if (en) "Username" else "Utilisateur") },
                 enabled = !enCours,
                 singleLine = true,
                 modifier = Modifier.weight(1f)
@@ -154,7 +154,7 @@ private fun OngletServeurFtp() {
             OutlinedTextField(
                 value = motDePasse,
                 onValueChange = { motDePasse = it },
-                label = { Text("Mot de passe") },
+                label = { Text(if (en) "Password" else "Mot de passe") },
                 enabled = !enCours,
                 singleLine = true,
                 modifier = Modifier.weight(1f)
@@ -174,7 +174,7 @@ private fun OngletServeurFtp() {
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Démarrer le serveur FTP")
+                Text(if (en) "Start FTP Server" else "Démarrer le serveur FTP")
             }
         } else {
             Button(
@@ -182,7 +182,7 @@ private fun OngletServeurFtp() {
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Arrêter le serveur FTP")
+                Text(if (en) "Stop FTP Server" else "Arrêter le serveur FTP")
             }
         }
     }
@@ -251,13 +251,13 @@ private fun OngletClientFtp() {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Connexion à un serveur FTP", style = MaterialTheme.typography.titleMedium)
+            Text(if (en) "Connect to an FTP server" else "Connexion à un serveur FTP", style = MaterialTheme.typography.titleMedium)
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = hote,
                     onValueChange = { hote = it },
-                    label = { Text("Hôte / IP (ex: 192.168.1.10)") },
+                    label = { Text(if (en) "Host / IP (e.g. 192.168.1.10)" else "Hôte / IP (ex: 192.168.1.10)") },
                     singleLine = true,
                     modifier = Modifier.weight(2f)
                 )
@@ -274,14 +274,14 @@ private fun OngletClientFtp() {
                 OutlinedTextField(
                     value = utilisateur,
                     onValueChange = { utilisateur = it },
-                    label = { Text("Utilisateur") },
+                    label = { Text(if (en) "Username" else "Utilisateur") },
                     singleLine = true,
                     modifier = Modifier.weight(1f)
                 )
                 OutlinedTextField(
                     value = motDePasse,
                     onValueChange = { motDePasse = it },
-                    label = { Text("Mot de passe") },
+                    label = { Text(if (en) "Password" else "Mot de passe") },
                     visualTransformation = PasswordVisualTransformation(),
                     singleLine = true,
                     modifier = Modifier.weight(1f)
@@ -300,7 +300,7 @@ private fun OngletClientFtp() {
                 if (chargement) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                 } else {
-                    Text("Se connecter")
+                    Text(if (en) "Connect" else "Se connecter")
                 }
             }
         }
@@ -331,7 +331,7 @@ private fun OngletClientFtp() {
                     connecte = false
                     fichiersDistants = emptyList()
                 }) {
-                    Text("Déconnecter")
+                    Text(if (en) "Disconnect" else "Déconnecter")
                 }
             }
             HorizontalDivider()
@@ -444,4 +444,8 @@ private fun formaterTailleFtp(octets: Long): String {
     val go = mo / 1024.0
     return String.format(Locale.getDefault(), "%.2f Go", go)
 }
+
+
+
+private val en: Boolean get() = com.monexplorateur.app.data.AppPreferences.langue.value == com.monexplorateur.app.data.LangueApp.EN
 

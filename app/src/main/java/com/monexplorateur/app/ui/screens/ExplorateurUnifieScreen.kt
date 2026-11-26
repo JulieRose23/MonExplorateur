@@ -291,7 +291,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                                 if (pp.couper) pressePapier = null
                                 compteurRefresh++
                             }
-                        }) { Text("Coller ici") }
+                        }) { Text(if (en) "Paste here" else "Coller ici") }
                         IconButton(onClick = { pressePapier = null }) {
                             Icon(Icons.Default.Close, contentDescription = if (en) "Cancel" else "Annuler")
                         }
@@ -335,7 +335,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                                 val choisis = listeAffichee.filter { it.cheminComplet in selection }
                                 pressePapier = PressePapierMulti(choisis, couper = true)
                                 selection = emptySet()
-                            }) { Text("Déplacer") }
+                            }) { Text(if (en) "Move" else "Déplacer") }
                             IconButton(onClick = {
                                 elementsASupprimer = listeAffichee.filter { it.cheminComplet in selection }
                             }) {
@@ -435,7 +435,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                 listeAffichee.isEmpty() -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
-                            text = if (rechercheActive) "Aucun fichier trouvé" else "Ce dossier est vide",
+                            text = if (rechercheActive) "Aucun fichier trouvé" else if (en) "This folder is empty" else "Ce dossier est vide",
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -498,7 +498,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                     OutlinedTextField(
                         value = nomArchive,
                         onValueChange = { nomArchive = it },
-                        label = { Text("Nom de l'archive") },
+                        label = { Text(if (en) "Archive name" else "Nom de l'archive") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -664,14 +664,14 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
             text = {
                 SelectionContainer {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("Nom : ${cible.nom}", fontWeight = FontWeight.Bold)
-                        Text("Chemin : ${cible.cheminComplet}", style = MaterialTheme.typography.bodySmall)
+                        Text("${if (en) "Name:" else "Nom :"} ${cible.nom}", fontWeight = FontWeight.Bold)
+                        Text("${if (en) "Path:" else "Chemin :"} ${cible.cheminComplet}", style = MaterialTheme.typography.bodySmall)
                         Text(
                             text = if (cible.estDossier) "Type : Dossier"
-                            else "Taille : ${formaterTailleUnifie(cible.tailleOuNombre)} (${cible.tailleOuNombre} octets)",
+                            else "${if (en) "Size:" else "Taille :"} ${formaterTailleUnifie(cible.tailleOuNombre)} (${cible.tailleOuNombre} octets)",
                             style = MaterialTheme.typography.bodySmall
                         )
-                        Text("Modifié le : $dateTxt", style = MaterialTheme.typography.bodySmall)
+                        Text("${if (en) "Modified:" else "Modifié le :"} $dateTxt", style = MaterialTheme.typography.bodySmall)
                         if (!cible.estDossier) {
                             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                             Text("MD5 :", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelSmall)
@@ -698,7 +698,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                 OutlinedTextField(
                     value = nomDossier,
                     onValueChange = { nomDossier = it },
-                    label = { Text("Nom du dossier") },
+                    label = { Text(if (en) "Folder name" else "Nom du dossier") },
                     singleLine = true
                 )
             },
@@ -820,7 +820,7 @@ private fun LigneElementUnifie(
     val dateFormatee = remember(item.derniereModif) { FORMATEUR_DATE.format(Date(item.derniereModif)) }
     val sousTitre = when {
         afficherCheminComplet -> item.cheminComplet
-        item.estDossier -> if (item.tailleOuNombre >= 0) "${item.tailleOuNombre} élément(s) • $dateFormatee" else "Dossier • $dateFormatee"
+        item.estDossier -> if (item.tailleOuNombre >= 0) "${item.tailleOuNombre} élément(s) • $dateFormatee" else "${if (en) "Folder" else "Dossier"} • $dateFormatee"
         else -> "${formaterTailleUnifie(item.tailleOuNombre)} • $dateFormatee"
     }
 
@@ -874,16 +874,16 @@ private fun LigneElementUnifie(
                 Icon(Icons.Default.MoreVert, contentDescription = "Options")
             }
             DropdownMenu(expanded = menuOuvert, onDismissRequest = { menuOuvert = false }) {
-                DropdownMenuItem(text = { Text("Sélectionner") }, onClick = { menuOuvert = false; onLongClick() })
-                DropdownMenuItem(text = { Text("Copier") }, onClick = { menuOuvert = false; onCopier() })
-                DropdownMenuItem(text = { Text("Déplacer") }, onClick = { menuOuvert = false; onCouper() })
+                DropdownMenuItem(text = { Text(if (en) "Select" else "Sélectionner") }, onClick = { menuOuvert = false; onLongClick() })
+                DropdownMenuItem(text = { Text(if (en) "Copy" else "Copier") }, onClick = { menuOuvert = false; onCopier() })
+                DropdownMenuItem(text = { Text(if (en) "Move" else "Déplacer") }, onClick = { menuOuvert = false; onCouper() })
                 DropdownMenuItem(text = { Text(if (en) "Rename" else "Renommer") }, onClick = { menuOuvert = false; onRenommer() })
                 if (!item.estDossier && FileUtils.estArchiveSupportee(item.nom)) {
                     DropdownMenuItem(text = { Text("Extraire...") }, onClick = { menuOuvert = false; onExtraire() })
                 } else {
-                    DropdownMenuItem(text = { Text("Compresser...") }, onClick = { menuOuvert = false; onCompresser() })
+                    DropdownMenuItem(text = { Text(if (en) "Compress..." else "Compresser...") }, onClick = { menuOuvert = false; onCompresser() })
                 }
-                DropdownMenuItem(text = { Text("Propriétés / MD5") }, onClick = { menuOuvert = false; onProprietes() })
+                DropdownMenuItem(text = { Text(if (en) "Properties / MD5" else "Propriétés / MD5") }, onClick = { menuOuvert = false; onProprietes() })
                 DropdownMenuItem(
                     text = { Text(if (en) "Delete" else "Supprimer", color = MaterialTheme.colorScheme.error) },
                     onClick = { menuOuvert = false; onSupprimer() }
@@ -951,3 +951,4 @@ private fun formaterTailleUnifie(octets: Long): String {
 
 
 private val en: Boolean get() = com.monexplorateur.app.data.AppPreferences.langue.value == com.monexplorateur.app.data.LangueApp.EN
+
