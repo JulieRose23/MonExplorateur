@@ -1,60 +1,42 @@
-﻿# 📁 MonExplorateur
+# MonExplorateur
 
-**Gestionnaire de fichiers Android, complet et open-source (Material 3 / Jetpack Compose)**  
-*Modern, full-featured, open-source Android file manager built with Material 3 & Jetpack Compose*
-
----
-
-## ✨ Fonctionnalités principales / Key Features
-
-- **Exploration complète du stockage / Full Storage Browsing**
-  - Navigation fluide dans le stockage interne (`/storage/emulated/0`), cartes SD et dossiers système.
-  - Sélection multiple (appui long), copier, couper, coller, renommer et création de dossiers.
-  - Recherche instantanée dans le répertoire courant et tri flexible (nom, date, taille).
-
-- **Accès privilégiés à la demande / Privileged Access On-Demand**
-  - **Mode Shizuku** : accès direct en lecture/écriture à `/Android/data` sans root (activable à la demande depuis les Réglages).
-  - **Mode Root (`su`)** : exploration complète de la partition racine `/` et des dossiers système.
-
-- **Archives & Compression multi-formats / Multi-Format Archives**
-  - Compression et extraction natives : **ZIP (`.zip`)**, **7-Zip (`.7z`)**, **TAR.GZ (`.tar.gz` / `.tgz`)**.
-  - Extraction des archives **RAR (`.rar`)**.
-
-- **Corbeille intégrée / Built-in Trash Bin**
-  - Suppression sécurisée avec restauration en un clic vers l'emplacement exact d'origine, ou suppression définitive.
-
-- **Réseau FTP intégré / Built-in FTP Server & Client**
-  - **Serveur FTP Wi-Fi** : transformez votre téléphone en serveur FTP pour transférer vos fichiers depuis un PC sans câble.
-  - **Client FTP** : connexion directe à des serveurs FTP distants pour parcourir et télécharger vos fichiers.
-
-- **Inspecteur de fichiers & Empreintes / File Inspector & Checksums**
-  - Calcul d'empreintes cryptographiques **MD5**, **SHA-1** et **SHA-256** sur n'importe quel fichier.
-  - Éditeur de texte intégré et lecteur multimédia/visionneuse.
-
-- **Personnalisation / Customization**
-  - Thème **Material 3** adaptatif : **Clair**, **Sombre** ou **Système**.
-  - Interface bilingue **Français / English** commutable instantanément dans les Réglages.
+Gestionnaire de fichiers Android moderne, rapide et open-source développé en **Kotlin** et **Jetpack Compose** (Material 3), conçu pour fonctionner aussi bien sur un appareil standard que sur un appareil avec **Shizuku**, **Root** ou **LSPosed**.
 
 ---
 
-## 📲 Installation
+## Fonctionnalités principales
 
-1. Rendez-vous dans l'onglet [**Releases**](../../releases) de ce dépôt.
-2. Téléchargez le fichier `MonExplorateur.apk`.
-3. Installez l'APK sur votre appareil Android (Android 8.0+ / API 26+) et accordez l'autorisation d'accès à tous les fichiers (`MANAGE_EXTERNAL_STORAGE`).
+### Exploration et gestion de fichiers
+* **Navigation complète :** Stockage interne, dossiers système, favoris, recherche globale et tri multi-critères.
+* **Accès privilégiés optionnels :** Prise en charge native de **Shizuku** et **Root (`libsu`)** pour accéder aux répertoires protégés (`/Android/data`, `/Android/obb`, partition système).
+* **Corbeille intégrée :** Suppression sécurisée avec restauration en un appui ou vidage définitif.
+* **Propriétés avancées :** Affichage détaillé des métadonnées et calcul des empreintes **MD5** et **SHA-256**.
+* **Interface bilingue :** Bascule instantanée entre **Français** et **Anglais** avec thèmes clair, sombre ou système.
+
+### Gestion avancée des archives
+* **Formats supportés :**
+  * **Création :** `ZIP` (standard ou chiffré), `7Z` et `TAR.GZ`.
+  * **Extraction :** `ZIP`, `7Z`, `RAR`, `TAR`, `TAR.GZ` (`TGZ`), `BZ2` et `XZ`.
+* **Chiffrement AES-256 :** Protection par mot de passe lors de la compression au format ZIP (`Zip4j`) et déchiffrement des archives `ZIP` et `7Z` protégées.
+* **Découpage et réassemblage multi-volumes :** Découpage automatique des archives en plusieurs parties (`archive.ext_1`, `archive.ext_2`…) selon une taille maximale définie (en Mo) et réassemblage transparent à l'extraction.
+* **Exécution en arrière-plan (`ForegroundService`) :** Compression et décompression maintenues actives écran éteint, avec barre de progression en direct dans l'application et notifications interactives cliquables.
+
+### Réseau FTP
+* **Serveur & client FTP intégrés :** Partage de fichiers sans fil sur le réseau local directement depuis l'onglet **FTP**.
+
+### Intégration système Android & LSPosed
+* **Ouverture directe depuis les navigateurs :** Apparaît dans le menu *« Ouvrir avec »* lors du clic sur une archive téléchargée (`.zip`, `.7z`, `.rar`, `.tar.gz`…) pour proposer immédiatement son extraction.
+* **Sélecteur de fichiers (`ACTION_GET_CONTENT`) :** Accessible depuis le menu latéral *« Ouvrir à partir de »* du sélecteur Android pour joindre des fichiers dans n'importe quelle application.
+* **Module LSPosed intégré (optionnel) :** Aucun APK séparé requis. Sur les appareils équipés de **LSPosed**, l'activation du module permet de rediriger automatiquement les appels système (`OPEN_DOCUMENT`, `GET_CONTENT`, `PICK_IMAGES`, `ACTION_PICK`) des applications cochées directement vers **MonExplorateur** — tout en restant totalement transparent pour les utilisateurs sans Root.
 
 ---
 
-## 🛠️Détails techniques
+## Installation et mises à jour
 
-- **Langage** : Kotlin 2.0 & Coroutines
-- **Interface** : Jetpack Compose + Material Design 3
-- **Privilèges** : Rikka Shizuku API (UserService AIDL) & `libsu` (Root)
-- **Archives** : Apache Commons Compress, XZ for Java, Junrar
-- **Réseau** : Apache FTPServer & Apache Commons Net
-- **CI/CD** : GitHub Actions (compilation et signature automatique des releases)
+1. Téléchargez le dernier APK signé depuis l'onglet [**Releases**](../../releases).
+2. Pour recevoir automatiquement les mises à jour et lire les notes de version, ajoutez l'URL du dépôt dans [**Obtainium**](https://github.com/ImranR98/Obtainium).
 
-## Télécharger & Mises à jour automatiques
-
-<a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/JulieRose23/MonExplorateur"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" height="54" alt="Get it on Obtainium" /></a>
-
+### Activation du module LSPosed (facultatif)
+1. Ouvrez **LSPosed → Modules → MonExplorateur** et activez le module.
+2. Cochez les applications dans lesquelles vous souhaitez remplacer le sélecteur de fichiers système.
+3. Forcez l'arrêt des applications cochées pour appliquer la redirection.
