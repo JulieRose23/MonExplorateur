@@ -1,6 +1,5 @@
 ﻿package com.monexplorateur.app.ui.screens
 
-
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -82,11 +81,12 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.monexplorateur.app.data.AppPreferences
-import com.monexplorateur.app.data.LangueApp
 import com.monexplorateur.app.data.ElementFichier
+import com.monexplorateur.app.data.LangueApp
 import com.monexplorateur.app.data.SourceFichier
 import com.monexplorateur.app.data.TrashManager
 import com.monexplorateur.app.data.UnifiedFileEngine
+import com.monexplorateur.app.notifications.ArchiveNotificationHelper
 import com.monexplorateur.app.root.RootManager
 import com.monexplorateur.app.shizuku.ShizukuManager
 import com.monexplorateur.app.ui.components.BadgeIconeElement
@@ -156,10 +156,10 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
         ) {
             Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
             Spacer(modifier = Modifier.height(16.dp))
-            Text("Accès au stockage requis", style = MaterialTheme.typography.headlineSmall)
+            Text(if (en) "Storage access required" else "Accès au stockage requis", style = MaterialTheme.typography.headlineSmall)
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                "Autorise l'accès complet aux fichiers pour explorer le téléphone.",
+                if (en) "Allow full file access to browse your device." else "Autorise l'accès complet aux fichiers pour explorer le téléphone.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -176,7 +176,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                 } else {
                     legacyPermissionLauncher.launch(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE))
                 }
-            }) { Text("Accorder la permission") }
+            }) { Text(if (en) "Grant permission" else "Accorder la permission") }
         }
         return
     }
@@ -187,24 +187,20 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
     var chargement by remember { mutableStateOf(true) }
     var compteurRefresh by remember { mutableIntStateOf(0) }
 
-    // Multi-sélection
     var selection by remember { mutableStateOf<Set<String>>(emptySet()) }
     val enModeSelection = selection.isNotEmpty()
 
-    // Recherche globale
     var rechercheActive by remember { mutableStateOf(false) }
     var requeteRecherche by remember { mutableStateOf("") }
     var resultatsRecherche by remember { mutableStateOf<List<ElementFichier>>(emptyList()) }
     var rechercheEnCours by remember { mutableStateOf(false) }
 
-    // Presse-papier & Dialogues
     var pressePapier by remember { mutableStateOf<PressePapierMulti?>(null) }
     var dialogueNouveauDossier by remember { mutableStateOf(false) }
     var elementARenommer by remember { mutableStateOf<ElementFichier?>(null) }
     var elementsASupprimer by remember { mutableStateOf<List<ElementFichier>>(emptyList()) }
     var elementProprietes by remember { mutableStateOf<ElementFichier?>(null) }
 
-    // Archives (Compression & Décompression multi-formats)
     var archiveAExtraire by remember { mutableStateOf<ElementFichier?>(null) }
     var archiveDestinationPicker by remember { mutableStateOf<ElementFichier?>(null) }
     var elementsACompresser by remember { mutableStateOf<List<ElementFichier>>(emptyList()) }
@@ -269,7 +265,11 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = if (pp.couper) "Déplacer ${pp.elements.size} élément(s) :" else "Copier ${pp.elements.size} élément(s) :",
+                                text = if (pp.couper) {
+                                    if (en) "Move ${pp.elements.size} item(s):" else "Déplacer ${pp.elements.size} élément(s) :"
+                                } else {
+                                    if (en) "Copy ${pp.elements.size} item(s):" else "Copier ${pp.elements.size} élément(s) :"
+                                },
                                 style = MaterialTheme.typography.labelSmall
                             )
                             Text(
@@ -281,11 +281,12 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                         }
                         Button(onClick = {
                             scope.launch {
-                                Toast.makeText(context, "Traitement en cours...", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, if (en) "Processing..." else "Traitement en cours...", Toast.LENGTH_SHORT).show()
                                 val ok = UnifiedFileEngine.copierOuDeplacer(pp.elements, cheminCourant, pp.couper)
                                 Toast.makeText(
                                     context,
-                                    if (ok) "Opération terminée" else "Certains éléments n'ont pas pu être traités",
+                                    if (ok) (if (en) "Operation completed" else "Opération terminée")
+                                    else (if (en) "Some items could not be processed" else "Certains éléments n'ont pas pu être traités"),
                                     Toast.LENGTH_SHORT
                                 ).show()
                                 if (pp.couper) pressePapier = null
@@ -316,7 +317,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
                         ) {
                             IconButton(onClick = { selection = emptySet() }) {
-                                Icon(Icons.Default.Close, contentDescription = "Quitter")
+                                Icon(Icons.Default.Close, contentDescription = if (en) "Exit" else "Quitter")
                             }
                             Text(
                                 text = "${selection.size}",
@@ -327,10 +328,10 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                             TextButton(onClick = {
                                 selection = if (selection.size == listeAffichee.size) emptySet()
                                 else listeAffichee.map { it.cheminComplet }.toSet()
-                            }) { Text("Tout") }
+                            }) { Text(if (en) "All" else "Tout") }
                             TextButton(onClick = {
                                 elementsACompresser = listeAffichee.filter { it.cheminComplet in selection }
-                            }) { Text("Archiver") }
+                            }) { Text(if (en) "Archive" else "Archiver") }
                             TextButton(onClick = {
                                 val choisis = listeAffichee.filter { it.cheminComplet in selection }
                                 pressePapier = PressePapierMulti(choisis, couper = true)
@@ -351,7 +352,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                             OutlinedTextField(
                                 value = requeteRecherche,
                                 onValueChange = { requeteRecherche = it },
-                                placeholder = { Text("Rechercher partout...") },
+                                placeholder = { Text(if (en) "Search everywhere..." else "Rechercher partout...") },
                                 singleLine = true,
                                 modifier = Modifier.weight(1f)
                             )
@@ -375,7 +376,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                                         val parent = File(cheminCourant).parent
                                         cheminCourant = if (parent.isNullOrEmpty()) "/" else parent
                                     }) {
-                                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
+                                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = if (en) "Back" else "Retour")
                                     }
                                 } else {
                                     Spacer(modifier = Modifier.width(12.dp))
@@ -388,7 +389,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                                     modifier = Modifier.weight(1f)
                                 )
                                 IconButton(onClick = { rechercheActive = true }) {
-                                    Icon(Icons.Default.Search, contentDescription = "Rechercher partout")
+                                    Icon(Icons.Default.Search, contentDescription = if (en) "Search everywhere" else "Rechercher partout")
                                 }
                             }
                             Row(
@@ -427,7 +428,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                             CircularProgressIndicator()
                             if (rechercheEnCours) {
                                 Spacer(modifier = Modifier.height(12.dp))
-                                Text("Recherche globale en cours...")
+                                Text(if (en) "Searching everywhere..." else "Recherche globale en cours...")
                             }
                         }
                     }
@@ -435,7 +436,9 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                 listeAffichee.isEmpty() -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
-                            text = if (rechercheActive) "Aucun fichier trouvé" else if (en) "This folder is empty" else "Ce dossier est vide",
+                            text = if (rechercheActive) {
+                                if (en) "No files found" else "Aucun fichier trouvé"
+                            } else if (en) "This folder is empty" else "Ce dossier est vide",
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -449,6 +452,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                             val estSelectionne = item.cheminComplet in selection
                             LigneElementUnifie(
                                 item = item,
+                                en = en,
                                 estSelectionne = estSelectionne,
                                 afficherCheminComplet = rechercheActive,
                                 onClick = {
@@ -461,7 +465,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                                     } else if (FileUtils.estArchiveSupportee(item.nom)) {
                                         archiveAExtraire = item
                                     } else {
-                                        scope.launch { ouvrirElement(context, item) }
+                                        scope.launch { ouvrirElement(context, item, en) }
                                     }
                                 },
                                 onLongClick = {
@@ -492,7 +496,12 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
 
         AlertDialog(
             onDismissRequest = { elementsACompresser = emptyList() },
-            title = { Text("Créer une archive (${cibles.size} élément(s))") },
+            title = {
+                Text(
+                    if (en) "Create archive (${cibles.size} item(s))"
+                    else "Créer une archive (${cibles.size} élément(s))"
+                )
+            },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
@@ -502,7 +511,10 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Text("Format de compression :", style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        if (en) "Compression format:" else "Format de compression :",
+                        style = MaterialTheme.typography.labelLarge
+                    )
                     FormatArchive.entries.forEach { fmt ->
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -512,7 +524,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                                 .padding(vertical = 2.dp)
                         ) {
                             RadioButton(selected = formatChoisi == fmt, onClick = { formatChoisi = fmt })
-                            Text(fmt.libelle, style = MaterialTheme.typography.bodyMedium)
+                            Text(fmt.libelle(en), style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                 }
@@ -520,20 +532,65 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
             confirmButton = {
                 Button(onClick = {
                     val propre = nomArchive.trim().ifEmpty { "Archive" }
+                    val fmt = formatChoisi
                     elementsACompresser = emptyList()
                     selection = emptySet()
                     scope.launch {
-                        Toast.makeText(context, "Compression ${formatChoisi.extension.uppercase()} en cours...", Toast.LENGTH_SHORT).show()
+                        val dest = File(cheminCourant, "$propre.${fmt.extension}")
+                        val notifHelper = ArchiveNotificationHelper(context)
+                        val notifId = (System.currentTimeMillis() and 0x7FFFFFFF).toInt()
+                        val titreNotif = if (en) "Compressing: ${dest.name}" else "Compression : ${dest.name}"
+
+                        Toast.makeText(
+                            context,
+                            if (en) "Compressing ${fmt.extension.uppercase()}..." else "Compression ${fmt.extension.uppercase()} en cours...",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        notifHelper.showProgress(
+                            title = titreNotif,
+                            text = if (en) "Preparing files..." else "Préparation des fichiers...",
+                            progress = 0,
+                            indeterminate = true,
+                            notifId = notifId
+                        )
+
                         val fichiersLocaux = cibles.mapNotNull { UnifiedFileEngine.preparerFichierLocal(context, it) }
-                        val dest = File(cheminCourant, "$propre.${formatChoisi.extension}")
                         val ok = withContext(Dispatchers.IO) {
-                            FileUtils.compresser(fichiersLocaux, dest, formatChoisi)
+                            FileUtils.compresser(fichiersLocaux, dest, fmt) { pct ->
+                                notifHelper.showProgress(
+                                    title = titreNotif,
+                                    text = "$pct %",
+                                    progress = pct,
+                                    indeterminate = false,
+                                    notifId = notifId
+                                )
+                            }
                         }
                         if (ok) {
                             compteurRefresh++
-                            Toast.makeText(context, "Archive créée : ${dest.name}", Toast.LENGTH_SHORT).show()
+                            notifHelper.showCompleted(
+                                title = if (en) "Archive created: ${dest.name}" else "Archive créée : ${dest.name}",
+                                text = if (en) "Compression completed" else "Compression terminée avec succès",
+                                success = true,
+                                notifId = notifId
+                            )
+                            Toast.makeText(
+                                context,
+                                if (en) "Archive created: ${dest.name}" else "Archive créée : ${dest.name}",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         } else {
-                            Toast.makeText(context, "Échec de la compression", Toast.LENGTH_SHORT).show()
+                            notifHelper.showCompleted(
+                                title = if (en) "Compression failed: ${dest.name}" else "Échec de la compression : ${dest.name}",
+                                text = if (en) "An error occurred" else "Une erreur est survenue",
+                                success = false,
+                                notifId = notifId
+                            )
+                            Toast.makeText(
+                                context,
+                                if (en) "Compression failed" else "Échec de la compression",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     }
                 }) { Text(if (en) "Compress" else "Compresser") }
@@ -549,24 +606,29 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
         AlertDialog(
             onDismissRequest = { archiveAExtraire = null },
             title = { Text("Archive : ${archiveItem.nom}") },
-            text = { Text("Comment souhaitez-vous traiter cette archive ?") },
+            text = {
+                Text(
+                    if (en) "How would you like to handle this archive?"
+                    else "Comment souhaitez-vous traiter cette archive ?"
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     archiveAExtraire = null
                     archiveDestinationPicker = archiveItem
-                }) { Text("Choisir où extraire...") }
+                }) { Text(if (en) "Choose destination..." else "Choisir où extraire...") }
             },
             dismissButton = {
                 Row {
                     TextButton(onClick = {
                         archiveAExtraire = null
-                        scope.launch { ouvrirElement(context, archiveItem) }
-                    }) { Text("Ouvrir") }
+                        scope.launch { ouvrirElement(context, archiveItem, en) }
+                    }) { Text(if (en) "Open" else "Ouvrir") }
                     TextButton(onClick = {
                         val cible = archiveItem
                         archiveAExtraire = null
                         scope.launch {
-                            extraireArchiveVers(context, cible, cheminCourant) { compteurRefresh++ }
+                            extraireArchiveVers(context, cible, cheminCourant, en) { compteurRefresh++ }
                         }
                     }) { Text(if (en) "Extract here" else "Extraire ici") }
                 }
@@ -585,7 +647,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
 
         AlertDialog(
             onDismissRequest = { archiveDestinationPicker = null },
-            title = { Text("Extraire vers...") },
+            title = { Text(if (en) "Extract to..." else "Extraire vers...") },
             text = {
                 Column(modifier = Modifier.height(280.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -628,7 +690,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                     val cible = archiveItem
                     archiveDestinationPicker = null
                     scope.launch {
-                        extraireArchiveVers(context, cible, dest) { compteurRefresh++ }
+                        extraireArchiveVers(context, cible, dest, en) { compteurRefresh++ }
                     }
                 }) { Text(if (en) "Extract here" else "Extraire ici") }
             },
@@ -640,8 +702,8 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
 
     // Dialogue Propriétés + MD5 / SHA-256
     elementProprietes?.let { cible ->
-        var md5 by remember { mutableStateOf("Calcul...") }
-        var sha256 by remember { mutableStateOf("Calcul...") }
+        var md5 by remember { mutableStateOf<String?>(null) }
+        var sha256 by remember { mutableStateOf<String?>(null) }
 
         LaunchedEffect(cible) {
             val local = UnifiedFileEngine.preparerFichierLocal(context, cible)
@@ -657,27 +719,39 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
         }
 
         val dateTxt = remember(cible) { FORMATEUR_DATE.format(Date(cible.derniereModif)) }
+        val libelleType = when {
+            cible.estDossier -> if (en) "Folder" else "Dossier"
+            FileUtils.estArchiveSupportee(cible.nom) -> "Archive"
+            else -> if (en) "File" else "Fichier"
+        }
 
         AlertDialog(
             onDismissRequest = { elementProprietes = null },
-            title = { Text("Propriétés (${cible.source.badge})") },
+            title = {
+                Text(
+                    if (en) "Properties (${cible.source.badge})"
+                    else "Propriétés (${cible.source.badge})"
+                )
+            },
             text = {
                 SelectionContainer {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text("${if (en) "Name:" else "Nom :"} ${cible.nom}", fontWeight = FontWeight.Bold)
                         Text("${if (en) "Path:" else "Chemin :"} ${cible.cheminComplet}", style = MaterialTheme.typography.bodySmall)
-                        Text(
-                            text = if (cible.estDossier) "Type : Dossier"
-                            else "${if (en) "Size:" else "Taille :"} ${formaterTailleUnifie(cible.tailleOuNombre)} (${cible.tailleOuNombre} octets)",
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                        Text("${if (en) "Type:" else "Type :"} $libelleType", style = MaterialTheme.typography.bodySmall)
+                        if (!cible.estDossier) {
+                            Text(
+                                text = "${if (en) "Size:" else "Taille :"} ${formaterTailleUnifie(cible.tailleOuNombre, en)} (${cible.tailleOuNombre} ${if (en) "bytes" else "octets"})",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                         Text("${if (en) "Modified:" else "Modifié le :"} $dateTxt", style = MaterialTheme.typography.bodySmall)
                         if (!cible.estDossier) {
                             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                             Text("MD5 :", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelSmall)
-                            Text(md5, style = MaterialTheme.typography.bodySmall)
+                            Text(md5 ?: if (en) "Calculating..." else "Calcul...", style = MaterialTheme.typography.bodySmall)
                             Text("SHA-256 :", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelSmall)
-                            Text(sha256, style = MaterialTheme.typography.bodySmall)
+                            Text(sha256 ?: if (en) "Calculating..." else "Calcul...", style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
@@ -709,7 +783,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                         scope.launch {
                             val cible = if (cheminCourant == "/") "/$propre" else "$cheminCourant/$propre"
                             if (UnifiedFileEngine.creerDossier(cible)) compteurRefresh++
-                            else Toast.makeText(context, "Création impossible", Toast.LENGTH_SHORT).show()
+                            else Toast.makeText(context, if (en) "Creation failed" else "Création impossible", Toast.LENGTH_SHORT).show()
                         }
                     }
                     dialogueNouveauDossier = false
@@ -740,11 +814,11 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                     if (propre.isNotEmpty() && propre != cible.nom) {
                         scope.launch {
                             if (UnifiedFileEngine.renommer(cible, propre)) compteurRefresh++
-                            else Toast.makeText(context, "Échec du renommage", Toast.LENGTH_SHORT).show()
+                            else Toast.makeText(context, if (en) "Rename failed" else "Échec du renommage", Toast.LENGTH_SHORT).show()
                         }
                     }
                     elementARenommer = null
-                }) { Text("Valider") }
+                }) { Text(if (en) "Confirm" else "Valider") }
             },
             dismissButton = {
                 TextButton(onClick = { elementARenommer = null }) { Text(if (en) "Cancel" else "Annuler") }
@@ -752,15 +826,25 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
         )
     }
 
-    // Dialogue Suppression : déplacement vers la corbeille (ou suppression définitive)
+    // Dialogue Suppression
     if (elementsASupprimer.isNotEmpty()) {
         AlertDialog(
             onDismissRequest = { elementsASupprimer = emptyList() },
-            title = { Text("Mettre à la corbeille (${elementsASupprimer.size}) ?") },
+            title = {
+                Text(
+                    if (en) "Move to trash (${elementsASupprimer.size})?"
+                    else "Mettre à la corbeille (${elementsASupprimer.size}) ?"
+                )
+            },
             text = {
                 Text(
-                    if (elementsASupprimer.size == 1) "Déplacer « ${elementsASupprimer.first().nom} » vers la corbeille ?"
-                    else "Déplacer ces ${elementsASupprimer.size} éléments vers la corbeille ?"
+                    if (elementsASupprimer.size == 1) {
+                        if (en) "Move « ${elementsASupprimer.first().nom} » to trash?"
+                        else "Déplacer « ${elementsASupprimer.first().nom} » vers la corbeille ?"
+                    } else {
+                        if (en) "Move these ${elementsASupprimer.size} items to trash?"
+                        else "Déplacer ces ${elementsASupprimer.size} éléments vers la corbeille ?"
+                    }
                 )
             },
             confirmButton = {
@@ -774,7 +858,11 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                             if (TrashManager.mettreALaCorbeille(context, el)) okCount++
                         }
                         compteurRefresh++
-                        Toast.makeText(context, "$okCount élément(s) déplacé(s) dans la corbeille", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            if (en) "$okCount item(s) moved to trash" else "$okCount élément(s) déplacé(s) dans la corbeille",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 }) { Text(if (en) "Trash" else "Corbeille", color = MaterialTheme.colorScheme.primary) }
             },
@@ -791,7 +879,11 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
                                 if (UnifiedFileEngine.supprimer(el)) okCount++
                             }
                             compteurRefresh++
-                            Toast.makeText(context, "$okCount élément(s) supprimé(s) définitivement", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                if (en) "$okCount item(s) permanently deleted" else "$okCount élément(s) supprimé(s) définitivement",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     }) { Text(if (en) "Permanent" else "Définitif", color = MaterialTheme.colorScheme.error) }
                 }
@@ -804,6 +896,7 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
 @Composable
 private fun LigneElementUnifie(
     item: ElementFichier,
+    en: Boolean,
     estSelectionne: Boolean,
     afficherCheminComplet: Boolean,
     onClick: () -> Unit,
@@ -820,8 +913,12 @@ private fun LigneElementUnifie(
     val dateFormatee = remember(item.derniereModif) { FORMATEUR_DATE.format(Date(item.derniereModif)) }
     val sousTitre = when {
         afficherCheminComplet -> item.cheminComplet
-        item.estDossier -> if (item.tailleOuNombre >= 0) "${item.tailleOuNombre} élément(s) • $dateFormatee" else "${if (en) "Folder" else "Dossier"} • $dateFormatee"
-        else -> "${formaterTailleUnifie(item.tailleOuNombre)} • $dateFormatee"
+        item.estDossier -> if (item.tailleOuNombre >= 0) {
+            if (en) "${item.tailleOuNombre} item(s) • $dateFormatee" else "${item.tailleOuNombre} élément(s) • $dateFormatee"
+        } else {
+            "${if (en) "Folder" else "Dossier"} • $dateFormatee"
+        }
+        else -> "${formaterTailleUnifie(item.tailleOuNombre, en)} • $dateFormatee"
     }
 
     Row(
@@ -879,7 +976,7 @@ private fun LigneElementUnifie(
                 DropdownMenuItem(text = { Text(if (en) "Move" else "Déplacer") }, onClick = { menuOuvert = false; onCouper() })
                 DropdownMenuItem(text = { Text(if (en) "Rename" else "Renommer") }, onClick = { menuOuvert = false; onRenommer() })
                 if (!item.estDossier && FileUtils.estArchiveSupportee(item.nom)) {
-                    DropdownMenuItem(text = { Text("Extraire...") }, onClick = { menuOuvert = false; onExtraire() })
+                    DropdownMenuItem(text = { Text(if (en) "Extract..." else "Extraire...") }, onClick = { menuOuvert = false; onExtraire() })
                 } else {
                     DropdownMenuItem(text = { Text(if (en) "Compress..." else "Compresser...") }, onClick = { menuOuvert = false; onCompresser() })
                 }
@@ -897,31 +994,78 @@ private suspend fun extraireArchiveVers(
     context: Context,
     archiveItem: ElementFichier,
     dossierParentDestination: String,
+    en: Boolean,
     onSucces: () -> Unit
 ) {
-    Toast.makeText(context, "Extraction en cours...", Toast.LENGTH_SHORT).show()
+    val notifHelper = ArchiveNotificationHelper(context)
+    val notifId = (System.currentTimeMillis() and 0x7FFFFFFF).toInt()
+    val titreNotif = if (en) "Extracting: ${archiveItem.nom}" else "Extraction : ${archiveItem.nom}"
+
+    Toast.makeText(context, if (en) "Extracting..." else "Extraction en cours...", Toast.LENGTH_SHORT).show()
+    notifHelper.showProgress(
+        title = titreNotif,
+        text = if (en) "Preparing archive..." else "Préparation de l'archive...",
+        progress = 0,
+        indeterminate = true,
+        notifId = notifId
+    )
+
     val localArchive = UnifiedFileEngine.preparerFichierLocal(context, archiveItem)
     if (localArchive == null) {
-        Toast.makeText(context, "Impossible de lire l'archive", Toast.LENGTH_SHORT).show()
+        notifHelper.showCompleted(
+            title = if (en) "Extraction failed: ${archiveItem.nom}" else "Échec de l'extraction : ${archiveItem.nom}",
+            text = if (en) "Unable to read archive" else "Impossible de lire l'archive",
+            success = false,
+            notifId = notifId
+        )
+        Toast.makeText(context, if (en) "Unable to read archive" else "Impossible de lire l'archive", Toast.LENGTH_SHORT).show()
         return
     }
     val nomDossier = FileUtils.nomSansExtensionArchive(archiveItem.nom)
     val dossierSortie = File(dossierParentDestination, nomDossier)
     val ok = withContext(Dispatchers.IO) {
-        FileUtils.decompresser(localArchive, dossierSortie)
+        FileUtils.decompresser(localArchive, dossierSortie) { pct ->
+            notifHelper.showProgress(
+                title = titreNotif,
+                text = "$pct %",
+                progress = pct,
+                indeterminate = false,
+                notifId = notifId
+            )
+        }
     }
     if (ok) {
         onSucces()
-        Toast.makeText(context, "Extrait dans $nomDossier/", Toast.LENGTH_SHORT).show()
+        notifHelper.showCompleted(
+            title = if (en) "Extraction completed: ${archiveItem.nom}" else "Extraction terminée : ${archiveItem.nom}",
+            text = if (en) "Extracted to $nomDossier/" else "Extrait dans $nomDossier/",
+            success = true,
+            notifId = notifId
+        )
+        Toast.makeText(
+            context,
+            if (en) "Extracted to $nomDossier/" else "Extrait dans $nomDossier/",
+            Toast.LENGTH_SHORT
+        ).show()
     } else {
-        Toast.makeText(context, "Échec de l'extraction (format chiffré ou corrompu ?)", Toast.LENGTH_LONG).show()
+        notifHelper.showCompleted(
+            title = if (en) "Extraction failed: ${archiveItem.nom}" else "Échec de l'extraction : ${archiveItem.nom}",
+            text = if (en) "Encrypted or corrupted archive?" else "Format chiffré ou corrompu ?",
+            success = false,
+            notifId = notifId
+        )
+        Toast.makeText(
+            context,
+            if (en) "Extraction failed (encrypted or corrupted?)" else "Échec de l'extraction (format chiffré ou corrompu ?)",
+            Toast.LENGTH_LONG
+        ).show()
     }
 }
 
-private suspend fun ouvrirElement(context: Context, item: ElementFichier) {
+private suspend fun ouvrirElement(context: Context, item: ElementFichier, en: Boolean) {
     val fichierLocal = UnifiedFileEngine.preparerFichierLocal(context, item)
     if (fichierLocal == null || !fichierLocal.exists()) {
-        Toast.makeText(context, "Impossible de préparer ce fichier", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, if (en) "Unable to prepare file" else "Impossible de préparer ce fichier", Toast.LENGTH_SHORT).show()
         return
     }
     try {
@@ -932,23 +1076,18 @@ private suspend fun ouvrirElement(context: Context, item: ElementFichier) {
             setDataAndType(uri, mime)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        context.startActivity(Intent.createChooser(intent, "Ouvrir avec"))
+        context.startActivity(Intent.createChooser(intent, if (en) "Open with" else "Ouvrir avec"))
     } catch (_: Exception) {
-        Toast.makeText(context, "Aucune application compatible", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, if (en) "No compatible app found" else "Aucune application compatible", Toast.LENGTH_SHORT).show()
     }
 }
 
-private fun formaterTailleUnifie(octets: Long): String {
-    if (octets < 1024) return "$octets o"
+private fun formaterTailleUnifie(octets: Long, en: Boolean): String {
+    if (octets < 1024) return if (en) "$octets B" else "$octets o"
     val ko = octets / 1024.0
-    if (ko < 1024) return String.format(Locale.getDefault(), "%.1f Ko", ko)
+    if (ko < 1024) return String.format(Locale.getDefault(), if (en) "%.1f KB" else "%.1f Ko", ko)
     val mo = ko / 1024.0
-    if (mo < 1024) return String.format(Locale.getDefault(), "%.1f Mo", mo)
+    if (mo < 1024) return String.format(Locale.getDefault(), if (en) "%.1f MB" else "%.1f Mo", mo)
     val go = mo / 1024.0
-    return String.format(Locale.getDefault(), "%.2f Go", go)
+    return String.format(Locale.getDefault(), if (en) "%.2f GB" else "%.2f Go", go)
 }
-
-
-
-private val en: Boolean get() = com.monexplorateur.app.data.AppPreferences.langue.value == com.monexplorateur.app.data.LangueApp.EN
-

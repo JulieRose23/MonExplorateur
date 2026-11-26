@@ -12,8 +12,8 @@ android {
         applicationId = "com.monexplorateur.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.0.3"
+        versionCode = 4
+        versionName = "1.0.4"
     }
 
     signingConfigs {
@@ -88,4 +88,5 @@ dependencies {
     implementation("org.tukaani:xz:1.10")
     implementation("com.github.junrar:junrar:7.5.5")
 }
+
 
