@@ -18,6 +18,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -497,9 +498,14 @@ fun ExplorateurUnifieScreen(paddingBasNavigation: PaddingValues = PaddingValues(
         AlertDialog(
             onDismissRequest = { elementsACompresser = emptyList() },
             title = {
+                val libelleNb = if (en) {
+                    if (cibles.size > 1) "${cibles.size} items" else "1 item"
+                } else {
+                    if (cibles.size > 1) "${cibles.size} éléments" else "1 élément"
+                }
                 Text(
-                    if (en) "Create archive (${cibles.size} item(s))"
-                    else "Créer une archive (${cibles.size} élément(s))"
+                    if (en) "Create archive ($libelleNb)"
+                    else "Créer une archive ($libelleNb)"
                 )
             },
             text = {
@@ -1091,3 +1097,4 @@ private fun formaterTailleUnifie(octets: Long, en: Boolean): String {
     val go = mo / 1024.0
     return String.format(Locale.getDefault(), if (en) "%.2f GB" else "%.2f Go", go)
 }
+
