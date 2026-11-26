@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
@@ -36,6 +37,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -52,14 +54,17 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -67,6 +72,10 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.monexplorateur.app.utils.FileUtils
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -81,6 +90,7 @@ private data class PressePapier(
 fun ExplorateurStandardScreen() {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val scope = rememberCoroutineScope()
 
     fun verifierPermission(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -126,10 +136,7 @@ fun ExplorateurStandardScreen() {
                 tint = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Accès au stockage requis",
-                style = MaterialTheme.typography.headlineSmall
-            )
+            Text(text = "Accès au stockage requis", style = MaterialTheme.typography.headlineSmall)
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Autorise l'application à gérer tous les fichiers pour parcourir la mémoire interne.",
@@ -166,20 +173,36 @@ fun ExplorateurStandardScreen() {
     var dossierCourant by remember { mutableStateOf(racine) }
     var compteurRafraichissement by remember { mutableIntStateOf(0) }
 
-    // États pour les opérations sur les fichiers
+    // Recherche et modales
+    var rechercheActive by remember { mutableStateOf(false) }
+    var texteRecherche by remember { mutableStateOf("") }
     var pressePapier by remember { mutableStateOf<PressePapier?>(null) }
     var afficherDialogueNouveauDossier by remember { mutableStateOf(false) }
     var fichierARenommer by remember { mutableStateOf<File?>(null) }
     var fichierASupprimer by remember { mutableStateOf<File?>(null) }
+    var fichierProprietes by remember { mutableStateOf<File?>(null) }
 
-    val fichiers = remember(dossierCourant, compteurRafraichissement) {
+    val fichiersBruts = remember(dossierCourant, compteurRafraichissement) {
         dossierCourant.listFiles()
             ?.sortedWith(compareBy({ !it.isDirectory }, { it.name.lowercase(Locale.getDefault()) }))
             ?: emptyList()
     }
 
-    BackHandler(enabled = dossierCourant.absolutePath != racine.absolutePath) {
-        dossierCourant.parentFile?.let { dossierCourant = it }
+    val fichiers = remember(fichiersBruts, texteRecherche) {
+        if (texteRecherche.isBlank()) {
+            fichiersBruts
+        } else {
+            fichiersBruts.filter { it.name.contains(texteRecherche.trim(), ignoreCase = true) }
+        }
+    }
+
+    BackHandler(enabled = rechercheActive || dossierCourant.absolutePath != racine.absolutePath) {
+        if (rechercheActive) {
+            rechercheActive = false
+            texteRecherche = ""
+        } else {
+            dossierCourant.parentFile?.let { dossierCourant = it }
+        }
     }
 
     Scaffold(
@@ -219,11 +242,8 @@ fun ExplorateurStandardScreen() {
                             } else {
                                 val succes = try {
                                     if (item.couper) {
-                                        if (item.fichier.renameTo(destination)) {
-                                            true
-                                        } else {
-                                            item.fichier.copyRecursively(destination, overwrite = false) && item.fichier.deleteRecursively()
-                                        }
+                                        if (item.fichier.renameTo(destination)) true
+                                        else item.fichier.copyRecursively(destination, overwrite = false) && item.fichier.deleteRecursively()
                                     } else {
                                         item.fichier.copyRecursively(destination, overwrite = false)
                                     }
@@ -258,41 +278,59 @@ fun ExplorateurStandardScreen() {
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    if (dossierCourant.absolutePath != racine.absolutePath) {
+                if (rechercheActive) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = texteRecherche,
+                            onValueChange = { texteRecherche = it },
+                            placeholder = { Text("Filtrer ce dossier...") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f)
+                        )
                         IconButton(onClick = {
-                            dossierCourant.parentFile?.let { dossierCourant = it }
+                            rechercheActive = false
+                            texteRecherche = ""
                         }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Dossier parent"
-                            )
+                            Icon(Icons.Default.Close, contentDescription = "Fermer la recherche")
                         }
-                    } else {
-                        Spacer(modifier = Modifier.width(12.dp))
                     }
-                    Text(
-                        text = dossierCourant.absolutePath,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        if (dossierCourant.absolutePath != racine.absolutePath) {
+                            IconButton(onClick = {
+                                dossierCourant.parentFile?.let { dossierCourant = it }
+                            }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Dossier parent")
+                            }
+                        } else {
+                            Spacer(modifier = Modifier.width(12.dp))
+                        }
+                        Text(
+                            text = dossierCourant.absolutePath,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(onClick = { rechercheActive = true }) {
+                            Icon(Icons.Default.Search, contentDescription = "Rechercher")
+                        }
+                    }
                 }
             }
             HorizontalDivider()
 
             if (fichiers.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
-                        text = "Ce dossier est vide",
+                        text = if (texteRecherche.isNotBlank()) "Aucun résultat" else "Ce dossier est vide",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -307,6 +345,8 @@ fun ExplorateurStandardScreen() {
                             fichier = fichier,
                             onClick = {
                                 if (fichier.isDirectory) {
+                                    texteRecherche = ""
+                                    rechercheActive = false
                                     dossierCourant = fichier
                                 } else {
                                     ouvrirFichier(context, fichier)
@@ -315,6 +355,37 @@ fun ExplorateurStandardScreen() {
                             onCopier = { pressePapier = PressePapier(fichier, couper = false) },
                             onCouper = { pressePapier = PressePapier(fichier, couper = true) },
                             onRenommer = { fichierARenommer = fichier },
+                            onCompresserZip = {
+                                scope.launch {
+                                    Toast.makeText(context, "Compression ZIP en cours...", Toast.LENGTH_SHORT).show()
+                                    val destZip = File(dossierCourant, "${fichier.nameWithoutExtension}.zip")
+                                    val ok = withContext(Dispatchers.IO) {
+                                        FileUtils.compresserEnZip(fichier, destZip)
+                                    }
+                                    if (ok) {
+                                        compteurRafraichissement++
+                                        Toast.makeText(context, "Archive créée : ${destZip.name}", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(context, "Échec de la compression", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            },
+                            onExtraireZip = {
+                                scope.launch {
+                                    Toast.makeText(context, "Extraction ZIP en cours...", Toast.LENGTH_SHORT).show()
+                                    val dossierSortie = File(dossierCourant, fichier.nameWithoutExtension)
+                                    val ok = withContext(Dispatchers.IO) {
+                                        FileUtils.decompresserZip(fichier, dossierSortie)
+                                    }
+                                    if (ok) {
+                                        compteurRafraichissement++
+                                        Toast.makeText(context, "Extrait dans ${dossierSortie.name}/", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(context, "Échec de l'extraction", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            },
+                            onProprietes = { fichierProprietes = fichier },
                             onSupprimer = { fichierASupprimer = fichier }
                         )
                         HorizontalDivider(thickness = 0.5.dp)
@@ -324,7 +395,53 @@ fun ExplorateurStandardScreen() {
         }
     }
 
-    // Boîte de dialogue : Nouveau dossier
+    // Dialogue Propriétés + MD5 / SHA-256
+    fichierProprietes?.let { cible ->
+        var md5 by remember { mutableStateOf("Calcul...") }
+        var sha256 by remember { mutableStateOf("Calcul...") }
+
+        LaunchedEffect(cible) {
+            withContext(Dispatchers.IO) {
+                md5 = FileUtils.calculerHash(cible, "MD5")
+                sha256 = FileUtils.calculerHash(cible, "SHA-256")
+            }
+        }
+
+        val dateTxt = remember(cible) {
+            SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(Date(cible.lastModified()))
+        }
+
+        AlertDialog(
+            onDismissRequest = { fichierProprietes = null },
+            title = { Text("Propriétés") },
+            text = {
+                SelectionContainer {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("Nom : ${cible.name}", fontWeight = FontWeight.Bold)
+                        Text("Chemin : ${cible.absolutePath}", style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            text = if (cible.isDirectory) "Type : Dossier (${cible.listFiles()?.size ?: 0} éléments)"
+                            else "Taille : ${formaterTaille(cible.length())} (${cible.length()} octets)",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text("Modifié le : $dateTxt", style = MaterialTheme.typography.bodySmall)
+                        if (cible.isFile) {
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                            Text("MD5 :", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelSmall)
+                            Text(md5, style = MaterialTheme.typography.bodySmall)
+                            Text("SHA-256 :", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelSmall)
+                            Text(sha256, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { fichierProprietes = null }) { Text("Fermer") }
+            }
+        )
+    }
+
+    // Dialogue Nouveau dossier
     if (afficherDialogueNouveauDossier) {
         var nomDossier by remember { mutableStateOf("") }
         AlertDialog(
@@ -339,32 +456,23 @@ fun ExplorateurStandardScreen() {
                 )
             },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        val propre = nomDossier.trim()
-                        if (propre.isNotEmpty()) {
-                            val nouveau = File(dossierCourant, propre)
-                            if (nouveau.mkdirs()) {
-                                compteurRafraichissement++
-                            } else {
-                                Toast.makeText(context, "Impossible de créer le dossier", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                        afficherDialogueNouveauDossier = false
+                TextButton(onClick = {
+                    val propre = nomDossier.trim()
+                    if (propre.isNotEmpty()) {
+                        val nouveau = File(dossierCourant, propre)
+                        if (nouveau.mkdirs()) compteurRafraichissement++
+                        else Toast.makeText(context, "Impossible de créer le dossier", Toast.LENGTH_SHORT).show()
                     }
-                ) {
-                    Text("Créer")
-                }
+                    afficherDialogueNouveauDossier = false
+                }) { Text("Créer") }
             },
             dismissButton = {
-                TextButton(onClick = { afficherDialogueNouveauDossier = false }) {
-                    Text("Annuler")
-                }
+                TextButton(onClick = { afficherDialogueNouveauDossier = false }) { Text("Annuler") }
             }
         )
     }
 
-    // Boîte de dialogue : Renommer
+    // Dialogue Renommer
     fichierARenommer?.let { cible ->
         var nouveauNom by remember { mutableStateOf(cible.name) }
         AlertDialog(
@@ -379,57 +487,42 @@ fun ExplorateurStandardScreen() {
                 )
             },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        val propre = nouveauNom.trim()
-                        if (propre.isNotEmpty() && propre != cible.name) {
-                            val dest = File(cible.parentFile, propre)
-                            if (cible.renameTo(dest)) {
-                                compteurRafraichissement++
-                            } else {
-                                Toast.makeText(context, "Échec du renommage", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                        fichierARenommer = null
+                TextButton(onClick = {
+                    val propre = nouveauNom.trim()
+                    if (propre.isNotEmpty() && propre != cible.name) {
+                        val dest = File(cible.parentFile, propre)
+                        if (cible.renameTo(dest)) compteurRafraichissement++
+                        else Toast.makeText(context, "Échec du renommage", Toast.LENGTH_SHORT).show()
                     }
-                ) {
-                    Text("Valider")
-                }
+                    fichierARenommer = null
+                }) { Text("Valider") }
             },
             dismissButton = {
-                TextButton(onClick = { fichierARenommer = null }) {
-                    Text("Annuler")
-                }
+                TextButton(onClick = { fichierARenommer = null }) { Text("Annuler") }
             }
         )
     }
 
-    // Boîte de dialogue : Confirmation de suppression
+    // Dialogue Supprimer
     fichierASupprimer?.let { cible ->
         AlertDialog(
             onDismissRequest = { fichierASupprimer = null },
             title = { Text("Supprimer définitivement ?") },
             text = { Text("Voulez-vous vraiment supprimer « ${cible.name} » ?") },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        val ok = if (cible.isDirectory) cible.deleteRecursively() else cible.delete()
-                        if (ok) {
-                            compteurRafraichissement++
-                            Toast.makeText(context, "Élément supprimé", Toast.LENGTH_SHORT).show()
-                        } else {
-                            Toast.makeText(context, "Impossible de supprimer", Toast.LENGTH_SHORT).show()
-                        }
-                        fichierASupprimer = null
+                TextButton(onClick = {
+                    val ok = if (cible.isDirectory) cible.deleteRecursively() else cible.delete()
+                    if (ok) {
+                        compteurRafraichissement++
+                        Toast.makeText(context, "Élément supprimé", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "Impossible de supprimer", Toast.LENGTH_SHORT).show()
                     }
-                ) {
-                    Text("Supprimer", color = MaterialTheme.colorScheme.error)
-                }
+                    fichierASupprimer = null
+                }) { Text("Supprimer", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { fichierASupprimer = null }) {
-                    Text("Annuler")
-                }
+                TextButton(onClick = { fichierASupprimer = null }) { Text("Annuler") }
             }
         )
     }
@@ -442,6 +535,9 @@ private fun LigneFichier(
     onCopier: () -> Unit,
     onCouper: () -> Unit,
     onRenommer: () -> Unit,
+    onCompresserZip: () -> Unit,
+    onExtraireZip: () -> Unit,
+    onProprietes: () -> Unit,
     onSupprimer: () -> Unit
 ) {
     var menuOuvert by remember { mutableStateOf(false) }
@@ -488,37 +584,19 @@ private fun LigneFichier(
             IconButton(onClick = { menuOuvert = true }) {
                 Icon(Icons.Default.MoreVert, contentDescription = "Options")
             }
-            DropdownMenu(
-                expanded = menuOuvert,
-                onDismissRequest = { menuOuvert = false }
-            ) {
-                DropdownMenuItem(
-                    text = { Text("Copier") },
-                    onClick = {
-                        menuOuvert = false
-                        onCopier()
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text("Couper (Déplacer)") },
-                    onClick = {
-                        menuOuvert = false
-                        onCouper()
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text("Renommer") },
-                    onClick = {
-                        menuOuvert = false
-                        onRenommer()
-                    }
-                )
+            DropdownMenu(expanded = menuOuvert, onDismissRequest = { menuOuvert = false }) {
+                DropdownMenuItem(text = { Text("Copier") }, onClick = { menuOuvert = false; onCopier() })
+                DropdownMenuItem(text = { Text("Couper (Déplacer)") }, onClick = { menuOuvert = false; onCouper() })
+                DropdownMenuItem(text = { Text("Renommer") }, onClick = { menuOuvert = false; onRenommer() })
+                if (fichier.isFile && fichier.extension.equals("zip", ignoreCase = true)) {
+                    DropdownMenuItem(text = { Text("Extraire ici (ZIP)") }, onClick = { menuOuvert = false; onExtraireZip() })
+                } else {
+                    DropdownMenuItem(text = { Text("Compresser en ZIP") }, onClick = { menuOuvert = false; onCompresserZip() })
+                }
+                DropdownMenuItem(text = { Text("Propriétés / MD5") }, onClick = { menuOuvert = false; onProprietes() })
                 DropdownMenuItem(
                     text = { Text("Supprimer", color = MaterialTheme.colorScheme.error) },
-                    onClick = {
-                        menuOuvert = false
-                        onSupprimer()
-                    }
+                    onClick = { menuOuvert = false; onSupprimer() }
                 )
             }
         }
@@ -527,14 +605,9 @@ private fun LigneFichier(
 
 private fun ouvrirFichier(context: Context, fichier: File) {
     try {
-        val uri = FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            fichier
-        )
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", fichier)
         val extension = fichier.extension.lowercase(Locale.getDefault())
         val mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) ?: "*/*"
-
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, mimeType)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)

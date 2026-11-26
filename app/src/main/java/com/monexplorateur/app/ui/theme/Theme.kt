@@ -10,22 +10,29 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
-private val LightColors = lightColorScheme()
-private val DarkColors = darkColorScheme()
+enum class ModeTheme(val libelle: String) {
+    SYSTEME("Système"),
+    CLAIR("Clair"),
+    SOMBRE("Sombre")
+}
 
 @Composable
 fun MonExplorateurTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    modeTheme: ModeTheme = ModeTheme.SYSTEME,
     content: @Composable () -> Unit
 ) {
+    val darkTheme = when (modeTheme) {
+        ModeTheme.SYSTEME -> isSystemInDarkTheme()
+        ModeTheme.CLAIR -> false
+        ModeTheme.SOMBRE -> true
+    }
+    val context = LocalContext.current
     val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-        darkTheme -> DarkColors
-        else -> LightColors
+        darkTheme -> darkColorScheme()
+        else -> lightColorScheme()
     }
 
     MaterialTheme(
