@@ -19,6 +19,8 @@ data class FichierShizuku(
 )
 
 object ShizukuManager {
+    private var estInitialise = false
+
     private val _estDisponible = MutableStateFlow(false)
     val estDisponible: StateFlow<Boolean> = _estDisponible
 
@@ -71,9 +73,12 @@ object ShizukuManager {
     }
 
     fun initialiser() {
-        Shizuku.addBinderReceivedListenerSticky(binderReceivedListener)
-        Shizuku.addBinderDeadListener(binderDeadListener)
-        Shizuku.addRequestPermissionResultListener(permissionResultListener)
+        if (!estInitialise) {
+            estInitialise = true
+            Shizuku.addBinderReceivedListenerSticky(binderReceivedListener)
+            Shizuku.addBinderDeadListener(binderDeadListener)
+            Shizuku.addRequestPermissionResultListener(permissionResultListener)
+        }
         verifierEtat()
     }
 
@@ -91,8 +96,11 @@ object ShizukuManager {
                 false
             }
             _aPermission.value = permOk
-            if (permOk && fileService == null) {
-                lierService()
+            if (permOk) {
+                if (fileService == null) lierService()
+            } else {
+                // Déclenche automatiquement la popup Shizuku dès que le service est détecté
+                demanderPermission()
             }
         } else {
             _aPermission.value = false
@@ -101,18 +109,21 @@ object ShizukuManager {
     }
 
     fun demanderPermission() {
-        if (!Shizuku.pingBinder()) return
-        if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
-            Shizuku.requestPermission(1001)
-        } else {
-            _aPermission.value = true
-            lierService()
+        try {
+            if (!Shizuku.pingBinder()) return
+            if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
+                Shizuku.requestPermission(1001)
+            } else {
+                _aPermission.value = true
+                lierService()
+            }
+        } catch (_: Exception) {
         }
     }
 
     fun lierService() {
-        if (!Shizuku.pingBinder()) return
         try {
+            if (!Shizuku.pingBinder()) return
             Shizuku.bindUserService(userServiceArgs, serviceConnection)
         } catch (_: Exception) {
         }
